@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="456" height="456" viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Rei: 7 camadas de sombra progressiva + peça branca (igual ao LoginPage) -->
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#000000" opacity="0.75" dx="7" dy="6">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#050505" opacity="0.60" dx="6" dy="5">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#111111" opacity="0.45" dx="5" dy="4">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#1E1E1E" opacity="0.30" dx="4" dy="3">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#303030" opacity="0.20" dx="3" dy="2">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#484848" opacity="0.12" dx="2" dy="1">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="#606060" opacity="0.06" dx="1" dy="0">&#x265A;</text>
+  <text x="188" y="320" text-anchor="middle" font-family="serif" font-size="188"
+        fill="white">&#x265A;</text>
+
+  <!-- Cavalo: glow branco atrás + peça preta na frente (igual ao LoginPage) -->
+  <text x="278" y="316" text-anchor="middle" font-family="serif" font-size="172"
+        fill="white" dx="1" dy="1">&#x265E;</text>
+  <text x="278" y="316" text-anchor="middle" font-family="serif" font-size="162"
+        fill="#1A1209">&#x265E;</text>
+
+</svg>

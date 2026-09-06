@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.SeasonRankingPage"
+             Title="Ranking da Liga"
+             BackgroundColor="#0A1020">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Cabeçalho da temporada -->
+        <Border Grid.Row="0"
+                BackgroundColor="#0D1828" Stroke="#2A1A50" StrokeThickness="1"
+                StrokeShape="RoundRectangle 0" Padding="20,14">
+            <Grid ColumnDefinitions="*,Auto">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="♛  LIGA CHESSARENA" TextColor="#6050A0"
+                           FontSize="10" FontAttributes="Bold" CharacterSpacing="1.5"/>
+                    <Label x:Name="SeasonLabel" Text="Temporada"
+                           TextColor="White" FontSize="16" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="0">
+                    <Label Text="SEUS PONTOS" TextColor="#607890" FontSize="9"
+                           HorizontalTextAlignment="End" CharacterSpacing="1"/>
+                    <Label x:Name="MyPointsLabel" Text="0"
+                           TextColor="#FFD700" FontSize="22" FontAttributes="Bold"
+                           HorizontalTextAlignment="End"/>
+                    <Label x:Name="MyPositionLabel" Text="—"
+                           TextColor="#607890" FontSize="10" HorizontalTextAlignment="End"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+
+        <!-- Lista completa -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout x:Name="RankingList" Padding="16,12" Spacing="4"/>
+        </ScrollView>
+
+    </Grid>
+</ContentPage>

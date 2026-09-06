@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.PointsExtractPage"
+             Title="Extrato de Pontos"
+             BackgroundColor="#1A1A2E">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Resumo -->
+        <Border Grid.Row="0" BackgroundColor="#16213E" StrokeThickness="0" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                    <Label Text="PONTOS TOTAIS" TextColor="#AAAACC" FontSize="10"/>
+                    <Label x:Name="TotalLabel" Text="0 pts"
+                           TextColor="#FFD700" FontSize="20" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <Border Grid.Column="1" BackgroundColor="#1A1400"
+                        Stroke="#FFD700" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="12,8">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="1">
+                        <Label Text="SEMANA"  TextColor="#FFD700" FontSize="9" HorizontalTextAlignment="Center"/>
+                        <Label x:Name="WeekLabel" Text="0 pts"
+                               TextColor="#FFD700" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="2" BackgroundColor="#0D1A2A"
+                        Stroke="#4CAF50" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="12,8">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="1">
+                        <Label Text="TORNEIOS" TextColor="#4CAF50" FontSize="9" HorizontalTextAlignment="Center"/>
+                        <Label x:Name="TourneysLabel" Text="0"
+                               TextColor="#4CAF50" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Últimos 30 dias -->
+        <Label Grid.Row="1" Text="Últimos 30 dias"
+               TextColor="#444466" FontSize="10" FontAttributes="Bold"
+               Padding="16,6" BackgroundColor="#0A0F1E"/>
+
+        <!-- Lista -->
+        <ScrollView Grid.Row="2">
+            <VerticalStackLayout x:Name="ExtractList" BackgroundColor="#0E1322" Spacing="0"/>
+        </ScrollView>
+
+    </Grid>
+</ContentPage>

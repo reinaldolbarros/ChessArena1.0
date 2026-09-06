@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.CareerFlowPage"
+             Title="Como Funciona a Carreira"
+             BackgroundColor="#0A1020">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,16,20,40" Spacing="16">
+
+            <!-- Intro -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Pirâmide da Carreira FIDE"
+                       TextColor="White" FontSize="22" FontAttributes="Bold"/>
+                <Label Text="7 níveis. Do Torneio Local ao Campeonato Mundial."
+                       TextColor="#A8BCCC" FontSize="15"/>
+            </VerticalStackLayout>
+
+            <!-- Pyramid visual -->
+            <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="16,14">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="          🏆 MUNDIAL"
+                           TextColor="#FFD700" FontSize="15" FontAttributes="Bold"/>
+                    <Label Text="       ══ CANDIDATOS ══"
+                           TextColor="#CC88FF" FontSize="15"/>
+                    <Label Text="    ── GRAND PRIX  ·  GRAND SWISS ──"
+                           TextColor="#9888DD" FontSize="15"/>
+                    <Label Text="  ════ COPA DO MUNDO FIDE ════"
+                           TextColor="#6AAFDC" FontSize="15"/>
+                    <Label Text="════════ ZONAL ════════"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="══════════ LOCAL ══════════"
+                           TextColor="#6A7A8A" FontSize="15"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 1 -->
+            <Border BackgroundColor="#0D1828" Stroke="#2A3A50" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 1" TextColor="#6A7A8A" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="Torneio Local"
+                               TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="✓ Top 2 → Torneio Zonal" TextColor="#4CAF50" FontSize="15"/>
+                    <Label Text="✗ Fora → Tentar novamente (sem limite)" TextColor="#FF7070" FontSize="15"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 2 -->
+            <Border BackgroundColor="#0D1828" Stroke="#2A3A50" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 2" TextColor="#A8BCCC" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="Torneio Zonal"
+                               TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="✓ Top 2 → Copa do Mundo FIDE" TextColor="#4CAF50" FontSize="15"/>
+                    <Label Text="✗ 1ª tentativa falha → Nova tentativa no Zonal" TextColor="#FF7070" FontSize="15"/>
+                    <Label Text="✗ 2ª tentativa falha → Volta ao Local" TextColor="#FF5050" FontSize="15"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 3 -->
+            <Border BackgroundColor="#0D2030" Stroke="#2A4060" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 3" TextColor="#6AAFDC" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="Copa do Mundo FIDE"
+                               TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Eliminação direta · 3 partidas"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="⚡ Vencer todas → Candidatos (classificação direta!)" TextColor="#FFD700" FontSize="15"/>
+                    <Label Text="✗ Qualquer derrota → Grand Swiss" TextColor="#FF7070" FontSize="15"/>
+                    <Label Text="Dica: Empate na eliminação equivale a derrota."
+                           TextColor="#9AB8D8" FontSize="15" FontAttributes="Italic"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 4 -->
+            <Border BackgroundColor="#0D1828" Stroke="#2A3A50" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 4" TextColor="#9888DD" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="Grand Swiss"
+                               TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores (IA média-alta)"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="✓ Top 2 → Candidatos" TextColor="#4CAF50" FontSize="15"/>
+                    <Label Text="✗ Fora → Grand Prix FIDE" TextColor="#FF7070" FontSize="15"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 5 -->
+            <Border BackgroundColor="#0D1828" Stroke="#2A3A50" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 5" TextColor="#9888DD" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="Grand Prix FIDE"
+                               TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores (IA avançada)"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="✓ 1º lugar → Candidatos" TextColor="#4CAF50" FontSize="15"/>
+                    <Label Text="✗ Fora → Nova Copa do Mundo" TextColor="#FF7070" FontSize="15"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 6 -->
+            <Border BackgroundColor="#1A0A2A" Stroke="#3A2050" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 6" TextColor="#DD99FF" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="Torneio de Candidatos"
+                               TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Round-robin · 7 rodadas · Adversários de elite"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="✓ 1º lugar → Campeonato Mundial" TextColor="#4CAF50" FontSize="15"/>
+                    <Label Text="✗ Fora → Nova Copa do Mundo" TextColor="#FF7070" FontSize="15"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Level 7 -->
+            <Border BackgroundColor="#1A1000" Stroke="#4A3800" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="NÍVEL 7" TextColor="#FFD700" FontSize="15" FontAttributes="Bold"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Label Grid.Column="1" Text="🏆 Campeonato Mundial"
+                               TextColor="#FFD700" FontSize="15" FontAttributes="Bold"/>
+                    </Grid>
+                    <Label Text="Formato: Melhor de 5 vitórias · IA Mestre máximo"
+                           TextColor="#A8BCCC" FontSize="15"/>
+                    <Label Text="✓ 3 vitórias → Campeão Mundial de Xadrez!" TextColor="#FFD700" FontSize="15"/>
+                    <Label Text="✗ Derrota → Volta aos Candidatos" TextColor="#FF7070" FontSize="15"/>
+                    <Label Text="Empates não contam — continue jogando até 3 vitórias."
+                           TextColor="#9AB8D8" FontSize="15" FontAttributes="Italic"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Flow summary -->
+            <Border BackgroundColor="#0A0A18" Stroke="#1A1A30" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 10" Padding="14,12">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Resumo do Fluxo" TextColor="#8878CC" FontSize="15" FontAttributes="Bold"/>
+                    <Label TextColor="#A8BCCC" FontSize="15">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Local → Zonal → Copa → " TextColor="#9AACBC"/>
+                                <Span Text="Candidatos direto" TextColor="#FFD700"/>
+                                <Span Text=" ou" TextColor="#9AACBC"/>
+                                <Span Text=" Grand Swiss → Candidatos" TextColor="#8878CC"/>
+                                <Span Text=" ou" TextColor="#9AACBC"/>
+                                <Span Text=" Grand Prix → Candidatos → Mundial 🏆" TextColor="#CC88FF"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <Label Text="Cada falha tem um caminho alternativo. Persistência é a chave."
+                           TextColor="#9AB8D8" FontSize="15" FontAttributes="Italic"/>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

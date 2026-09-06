@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.LoginPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0A1020">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="28,44,28,32" Spacing="0">
+
+            <!-- ══ Hero ══ -->
+            <VerticalStackLayout Spacing="0" Margin="0,0,0,28">
+                <Image Source="chessarena_splash.png"
+                       Aspect="AspectFit"
+                       HeightRequest="180"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,12"/>
+                <Label Text="ChessArena"
+                       FontSize="32" FontAttributes="Bold" TextColor="White"
+                       HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+                <Label Text="Jogue · Evolua · Conquiste"
+                       FontSize="15" TextColor="#A8C0DC"
+                       HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <!-- ══ Formulário principal ══ -->
+            <VerticalStackLayout x:Name="FormPanel" Spacing="0">
+
+                <!-- ── Login (exibido por padrão) ── -->
+                <VerticalStackLayout x:Name="EnterFields" Spacing="0">
+
+                    <Label Text="Login ou e-mail" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="16,4" Margin="0,0,0,14">
+                        <Entry x:Name="LoginEntry"
+                               Placeholder="seu login ou email@exemplo.com"
+                               PlaceholderColor="#4A6080" TextColor="White"
+                               Keyboard="Text" ReturnType="Next"
+                               Completed="OnLoginEntryCompleted"
+                               BackgroundColor="Transparent" FontSize="15"/>
+                    </Border>
+
+                    <Label Text="Senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="12,0,4,0" Margin="0,0,0,6">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry x:Name="LoginPasswordEntry"
+                                   Placeholder="Sua senha"
+                                   PlaceholderColor="#4A6080" TextColor="White"
+                                   IsPassword="True" ReturnType="Done"
+                                   Completed="OnLoginPasswordCompleted"
+                                   BackgroundColor="Transparent" FontSize="15"/>
+                            <Button x:Name="ToggleLoginPwdBtn"
+                                    Grid.Column="1" Text="👁"
+                                    Clicked="OnToggleLoginPwd"
+                                    BackgroundColor="Transparent" TextColor="#4A6080"
+                                    FontSize="16" Padding="8,0"
+                                    HeightRequest="46" WidthRequest="44"/>
+                        </Grid>
+                    </Border>
+
+                    <Label x:Name="LoginErrorLabel"
+                           TextColor="#F87171" FontSize="12"
+                           HorizontalTextAlignment="Center"
+                           IsVisible="False" Margin="0,2,0,6"/>
+
+                    <Button Text="ENTRAR"
+                            Clicked="OnEntrarClicked"
+                            BackgroundColor="#1D4ED8" TextColor="White"
+                            FontAttributes="Bold" FontSize="16"
+                            CornerRadius="12" HeightRequest="54"
+                            Margin="0,10,0,12"/>
+
+                    <Grid ColumnDefinitions="*,*" Margin="4,0,4,0">
+                        <Label Text="Esqueci minha senha"
+                               TextColor="#9ABAE0" FontSize="15"
+                               VerticalOptions="Center">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnForgotPassword"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                        <Label Grid.Column="1" Text="Criar conta →"
+                               TextColor="#90C0FF" FontSize="15"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnShowRegister"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </Grid>
+
+                </VerticalStackLayout>
+
+                <!-- ── Cadastro (oculto por padrão) ── -->
+                <VerticalStackLayout x:Name="RegisterFields" IsVisible="False" Spacing="0">
+
+                    <Label Text="← Já tenho conta"
+                           TextColor="#9ABAE0" FontSize="15"
+                           Margin="0,0,0,18">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnShowLogin"/>
+                        </Label.GestureRecognizers>
+                    </Label>
+
+                    <Label Text="Login  (nome de usuário)" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="16,4" Margin="0,0,0,14">
+                        <Entry x:Name="RegLoginEntry"
+                               Placeholder="Ex: xadrez_master"
+                               PlaceholderColor="#4A6080" TextColor="White"
+                               Keyboard="Text" ReturnType="Next"
+                               Completed="OnRegLoginCompleted"
+                               BackgroundColor="Transparent" FontSize="15"/>
+                    </Border>
+
+                    <Label Text="E-mail" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="16,4" Margin="0,0,0,14">
+                        <Entry x:Name="RegEmailEntry"
+                               Placeholder="email@exemplo.com"
+                               PlaceholderColor="#4A6080" TextColor="White"
+                               Keyboard="Email" ReturnType="Next"
+                               Completed="OnRegEmailCompleted"
+                               BackgroundColor="Transparent" FontSize="15"/>
+                    </Border>
+
+                    <Label Text="Senha  (mín. 6 caracteres)" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="12,0,4,0" Margin="0,0,0,14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry x:Name="RegPasswordEntry"
+                                   Placeholder="Crie sua senha"
+                                   PlaceholderColor="#4A6080" TextColor="White"
+                                   IsPassword="True" ReturnType="Next"
+                                   Completed="OnRegPasswordCompleted"
+                                   BackgroundColor="Transparent" FontSize="15"/>
+                            <Button x:Name="ToggleRegPwdBtn"
+                                    Grid.Column="1" Text="👁"
+                                    Clicked="OnToggleRegPwd"
+                                    BackgroundColor="Transparent" TextColor="#4A6080"
+                                    FontSize="16" Padding="8,0"
+                                    HeightRequest="46" WidthRequest="44"/>
+                        </Grid>
+                    </Border>
+
+                    <Label Text="Confirmar senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="12,0,4,0" Margin="0,0,0,14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry x:Name="RegConfirmPasswordEntry"
+                                   Placeholder="Repita a senha"
+                                   PlaceholderColor="#4A6080" TextColor="White"
+                                   IsPassword="True" ReturnType="Next"
+                                   Completed="OnRegConfirmPasswordCompleted"
+                                   BackgroundColor="Transparent" FontSize="15"/>
+                            <Button x:Name="ToggleRegConfirmPwdBtn"
+                                    Grid.Column="1" Text="👁"
+                                    Clicked="OnToggleRegConfirmPwd"
+                                    BackgroundColor="Transparent" TextColor="#4A6080"
+                                    FontSize="16" Padding="8,0"
+                                    HeightRequest="46" WidthRequest="44"/>
+                        </Grid>
+                    </Border>
+
+                    <VerticalStackLayout Spacing="6" Margin="0,0,0,8">
+                        <Label Text="País  (opcional)" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,0"/>
+                        <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                                StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                                Padding="12,0">
+                            <Picker x:Name="RegCountryPicker"
+                                    Title="Selecione o país"
+                                    TitleColor="#2A3D5E" TextColor="White"
+                                    BackgroundColor="Transparent"
+                                    SelectedIndexChanged="OnRegCountryChanged"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout x:Name="RegStateSection" Spacing="6" Margin="0,0,0,8" IsVisible="False">
+                        <Label Text="Estado" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,0"/>
+                        <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                                StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                                Padding="12,0">
+                            <Picker x:Name="RegStatePicker"
+                                    Title="Selecione o estado"
+                                    TitleColor="#2A3D5E" TextColor="White"
+                                    BackgroundColor="Transparent"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Label x:Name="RegisterErrorLabel"
+                           TextColor="#F87171" FontSize="12"
+                           HorizontalTextAlignment="Center"
+                           IsVisible="False" Margin="0,2,0,6"/>
+
+                    <Button Text="CRIAR CONTA"
+                            Clicked="OnCadastrarClicked"
+                            BackgroundColor="#1D4ED8" TextColor="White"
+                            FontAttributes="Bold" FontSize="16"
+                            CornerRadius="12" HeightRequest="54"
+                            Margin="0,10,0,10"/>
+
+                </VerticalStackLayout>
+
+                <!-- Separador -->
+                <Grid ColumnDefinitions="*,Auto,*" Margin="0,14,0,10">
+                    <BoxView BackgroundColor="#2A4060" HeightRequest="1" VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="  ou  " TextColor="#4A6888" FontSize="13"/>
+                    <BoxView Grid.Column="2" BackgroundColor="#2A4060" HeightRequest="1" VerticalOptions="Center"/>
+                </Grid>
+
+                <Button Text="Entrar como visitante"
+                        Clicked="OnAnonymousClicked"
+                        BackgroundColor="Transparent" TextColor="#A8C0DC"
+                        BorderColor="#2A3850" BorderWidth="1.5"
+                        FontSize="14" CornerRadius="12" HeightRequest="48"/>
+
+            </VerticalStackLayout>
+
+            <!-- ══ Painel: Redefinir senha ══ -->
+            <VerticalStackLayout x:Name="ResetPanel" IsVisible="False" Spacing="0">
+
+                <Label Text="🔑  Redefinir senha"
+                       TextColor="White" FontSize="20" FontAttributes="Bold"
+                       HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+                <Label Text="Digite seu login ou e-mail e crie uma nova senha."
+                       TextColor="#BDD0E8" FontSize="15"
+                       HorizontalTextAlignment="Center" Margin="0,0,0,20"/>
+
+                <Label Text="Login ou e-mail" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                        Padding="16,4" Margin="0,0,0,14">
+                    <Entry x:Name="ResetCredentialEntry"
+                           Placeholder="login ou email cadastrado"
+                           PlaceholderColor="#4A6080" TextColor="White"
+                           Keyboard="Text" ReturnType="Next"
+                           Completed="OnResetCredentialCompleted"
+                           BackgroundColor="Transparent" FontSize="15"/>
+                </Border>
+
+                <Label Text="Nova senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                        Padding="12,0,4,0" Margin="0,0,0,14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Entry x:Name="NewPasswordEntry"
+                               Placeholder="Mínimo 6 caracteres"
+                               PlaceholderColor="#4A6080" TextColor="White"
+                               IsPassword="True" ReturnType="Next"
+                               Completed="OnNewPasswordCompleted"
+                               BackgroundColor="Transparent" FontSize="15"/>
+                        <Button x:Name="ToggleNewPwdBtn"
+                                Grid.Column="1" Text="👁"
+                                Clicked="OnToggleNewPwd"
+                                BackgroundColor="Transparent" TextColor="#4A6080"
+                                FontSize="16" Padding="8,0"
+                                HeightRequest="46" WidthRequest="44"/>
+                    </Grid>
+                </Border>
+
+                <Label Text="Confirmar nova senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                        Padding="12,0,4,0" Margin="0,0,0,6">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Entry x:Name="ConfirmPasswordEntry"
+                               Placeholder="Repita a nova senha"
+                               PlaceholderColor="#4A6080" TextColor="White"
+                               IsPassword="True" ReturnType="Done"
+                               Completed="OnConfirmPasswordCompleted"
+                               BackgroundColor="Transparent" FontSize="15"/>
+                        <Button x:Name="ToggleConfirmPwdBtn"
+                                Grid.Column="1" Text="👁"
+                                Clicked="OnToggleConfirmPwd"
+                                BackgroundColor="Transparent" TextColor="#4A6080"
+                                FontSize="16" Padding="8,0"
+                                HeightRequest="46" WidthRequest="44"/>
+                    </Grid>
+                </Border>
+
+                <Label x:Name="ResetErrorLabel"
+                       TextColor="#F87171" FontSize="12"
+                       HorizontalTextAlignment="Center"
+                       IsVisible="False" Margin="0,2,0,6"/>
+
+                <Button Text="REDEFINIR SENHA"
+                        Clicked="OnResetPasswordClicked"
+                        BackgroundColor="#0F3460" TextColor="White"
+                        FontAttributes="Bold" FontSize="16"
+                        CornerRadius="12" HeightRequest="54"
+                        Margin="0,10,0,14"/>
+
+                <Label Text="← Voltar ao login"
+                       TextColor="#A8C0D8" FontSize="15"
+                       HorizontalTextAlignment="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackFromReset"/>
+                    </Label.GestureRecognizers>
+                </Label>
+
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.RankingPage"
+             Title="Ranking"
+             BackgroundColor="#1A1A2E">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+        <!-- ══ Abas Global / Semanal ══ -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="#0F3460">
+            <Button x:Name="GlobalTab" Text="🌍  Global"  Clicked="OnGlobalTab"
+                    BackgroundColor="#1A5276" TextColor="White" CornerRadius="0"
+                    FontAttributes="Bold" HeightRequest="42"/>
+            <Button x:Name="WeeklyTab" Grid.Column="1" Text="📅  Semanal" Clicked="OnWeeklyTab"
+                    BackgroundColor="#0F3460" TextColor="#AAAACC" CornerRadius="0"
+                    HeightRequest="42"/>
+        </Grid>
+
+        <!-- ══ Cabeçalho da tabela ══ -->
+        <Grid Grid.Row="1" x:Name="TableHeader" ColumnDefinitions="44,*,80"
+              BackgroundColor="#0A1628" Padding="10,5">
+            <Label Text="#"         TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Grid.Column="1" Text="Jogador" TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold"/>
+            <Label Grid.Column="2" Text="Rating"  TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+        </Grid>
+
+        <!-- ══ Lista de ranking ══ -->
+        <ScrollView Grid.Row="2">
+            <VerticalStackLayout x:Name="RankList" Spacing="1"/>
+        </ScrollView>
+
+        <!-- ══ Botão extrato de pontos ══ -->
+        <Button Grid.Row="3"
+                Text="📋  extrato de rating"
+                Clicked="OnExtractClicked"
+                BackgroundColor="#12172A" TextColor="#A0A0CC"
+                FontSize="15" CornerRadius="0" HeightRequest="34" Padding="0"/>
+
+        <!-- ══ Sua posição (fixada no rodapé) ══ -->
+        <Border Grid.Row="4" x:Name="MyPositionFrame"
+                BackgroundColor="#1C2A1C" Stroke="#FFD700" StrokeThickness="1"
+                Padding="10,8">
+            <Grid ColumnDefinitions="44,*,80">
+                <Label x:Name="MyPosLabel" TextColor="#FFD700" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                <StackLayout Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                    <Label x:Name="MyAvatarLabel" FontSize="16" VerticalOptions="Center"/>
+                    <Label x:Name="MyNameLabel"   TextColor="#FFD700" FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
+                </StackLayout>
+                <Label x:Name="MyPointsLabel" Grid.Column="2" TextColor="#4CAF50" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</ContentPage>

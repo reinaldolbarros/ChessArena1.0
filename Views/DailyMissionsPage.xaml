@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.DailyMissionsPage"
+             Shell.NavBarIsVisible="False"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="#0A1020">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="24,52,24,20" Spacing="18">
+
+                <!-- ══ Saudação ══ -->
+                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                    <Label x:Name="GreetingLabel" Text="Bom dia!"
+                           TextColor="White" FontSize="26" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"/>
+                    <Label x:Name="StarsLabel" Text="⭐ 0 · Casual"
+                           TextColor="#C8A020" FontSize="16"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <!-- ══ Bônus Diário ══ -->
+                <Border x:Name="BonusFrame"
+                        BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12" Padding="16,14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                            <Label x:Name="BonusTitleLabel" Text="Bônus Diário"
+                                   TextColor="#FFD700" FontSize="16" FontAttributes="Bold"/>
+                            <Label x:Name="BonusStreakLabel" Text="Sequência: 1 dia"
+                                   TextColor="#A0B0C8" FontSize="14"/>
+                        </VerticalStackLayout>
+                        <Button x:Name="BonusBtn" Grid.Column="1"
+                                Text="Resgatar"
+                                Clicked="OnBonusClicked"
+                                BackgroundColor="#FFD700" TextColor="#0A1020"
+                                FontAttributes="Bold" FontSize="14"
+                                CornerRadius="8" HeightRequest="36" WidthRequest="90"
+                                IsVisible="False"/>
+                    </Grid>
+                </Border>
+
+                <!-- ══ Missões ══ -->
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Missões de Hoje"
+                           TextColor="White" FontSize="18" FontAttributes="Bold"/>
+                    <VerticalStackLayout x:Name="MissionContainer" Spacing="10"/>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ══ Botão Jogar ══ -->
+        <Button Grid.Row="1"
+                Text="▶  JOGAR!"
+                Clicked="OnPlayClicked"
+                BackgroundColor="#1A5AA0" TextColor="White"
+                FontAttributes="Bold" FontSize="19"
+                CornerRadius="0" HeightRequest="62"/>
+
+    </Grid>
+
+</ContentPage>

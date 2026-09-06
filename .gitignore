@@ -1,0 +1,15 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+
+# Binários do Stockfish (baixados à parte — não são código-fonte)
+Platforms/Android/lib/
+Platforms/Windows/stockfish.exe
+Resources/Raw/stockfish
+
+# Backup local do histórico antigo (nunca deve ficar dentro do repositório)
+.git-historico-antigo/

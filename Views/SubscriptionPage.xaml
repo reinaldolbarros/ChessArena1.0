@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.SubscriptionPage"
+             Title="Planos"
+             BackgroundColor="#0A1020">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24,20,24,40" Spacing="0">
+
+            <!-- Cabeçalho -->
+            <Label Text="Escolha seu plano"
+                   TextColor="White" FontSize="22" FontAttributes="Bold"
+                   HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+            <Label x:Name="CurrentPlanLabel"
+                   Text="Plano atual: Gratuito"
+                   TextColor="#607890" FontSize="13"
+                   HorizontalTextAlignment="Center" Margin="0,0,0,28"/>
+
+            <!-- ══ Plano Gratuito ══ -->
+            <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14" Padding="20,16" Margin="0,0,0,12">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Gratuito" TextColor="#8AADCC"
+                                   FontSize="18" FontAttributes="Bold"/>
+                            <Label Text="Grátis" TextColor="#607890" FontSize="13"/>
+                        </VerticalStackLayout>
+                        <Border x:Name="FreeBadge"
+                                Grid.Column="1"
+                                BackgroundColor="#1A2840" Stroke="#2A3A50" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8" Padding="10,4"
+                                VerticalOptions="Center" IsVisible="False">
+                            <Label Text="Plano atual" TextColor="#607890" FontSize="11"/>
+                        </Border>
+                    </Grid>
+                    <BoxView Color="#1A2840" HeightRequest="1"/>
+                    <Label Text="· Até 2 anúncios por dia" TextColor="#5A7898" FontSize="12"/>
+                    <Label Text="· Bônus diário base (30–150 fichas)" TextColor="#5A7898" FontSize="12"/>
+                    <Label Text="· 2 missões diárias" TextColor="#5A7898" FontSize="12"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ══ Plano Challenger ══ -->
+            <Border x:Name="PrataCard"
+                    BackgroundColor="#0F1E35" Stroke="#2A5090" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14" Padding="20,16" Margin="0,0,0,12">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="◈" TextColor="#90B8E0" FontSize="20" VerticalOptions="Center"/>
+                                <Label Text="Challenger" TextColor="White"
+                                       FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                            <Label Text="R$ 5,90 / mês" TextColor="#4A8AC0" FontSize="14" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                        <Border x:Name="PrataBadge"
+                                Grid.Column="1"
+                                BackgroundColor="#1A3050" Stroke="#2A5090" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8" Padding="10,4"
+                                VerticalOptions="Center" IsVisible="False">
+                            <Label Text="Plano atual" TextColor="#4A8AC0" FontSize="11"/>
+                        </Border>
+                    </Grid>
+                    <BoxView Color="#1A3050" HeightRequest="1"/>
+                    <Label Text="· Sem anúncios" TextColor="#8AADCC" FontSize="12"/>
+                    <Label Text="· Bônus diário +50% (45–225 fichas)" TextColor="#8AADCC" FontSize="12"/>
+                    <Label Text="· +25 fichas bônus ao resgatar por dia" TextColor="#8AADCC" FontSize="12"/>
+                    <Label Text="· 10% desconto no buy-in da Liga" TextColor="#8AADCC" FontSize="12"/>
+                    <Label Text="· Badge ◈ Challenger no ranking" TextColor="#8AADCC" FontSize="12"/>
+                    <Button x:Name="PrataBtn"
+                            Text="Assinar Challenger — R$ 5,90/mês"
+                            Clicked="OnPrataClicked"
+                            BackgroundColor="#1A4A80" TextColor="White"
+                            FontAttributes="Bold" FontSize="14"
+                            CornerRadius="10" HeightRequest="46"
+                            Margin="0,6,0,0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ══ Plano Grande Mestre ══ -->
+            <Border x:Name="OuroCard"
+                    BackgroundColor="#1A1400" Stroke="#B8860B" StrokeThickness="1.5"
+                    StrokeShape="RoundRectangle 14" Padding="20,16" Margin="0,0,0,24">
+                <VerticalStackLayout Spacing="10">
+                    <!-- Tag "Mais popular" -->
+                    <Border BackgroundColor="#3A2800" Stroke="#B8860B" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 6" Padding="10,3"
+                            HorizontalOptions="Start" Margin="0,0,0,2">
+                        <Label Text="Mais popular" TextColor="#FFD700" FontSize="10" FontAttributes="Bold"/>
+                    </Border>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="◆" TextColor="#FFD700" FontSize="20" VerticalOptions="Center"/>
+                                <Label Text="Grande Mestre" TextColor="White"
+                                       FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                            <Label Text="R$ 9,90 / mês" TextColor="#FFD700" FontSize="14" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                        <Border x:Name="OuroBadge"
+                                Grid.Column="1"
+                                BackgroundColor="#2A1800" Stroke="#B8860B" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8" Padding="10,4"
+                                VerticalOptions="Center" IsVisible="False">
+                            <Label Text="Plano atual" TextColor="#FFD700" FontSize="11"/>
+                        </Border>
+                    </Grid>
+                    <BoxView Color="#2A2000" HeightRequest="1"/>
+                    <Label Text="· Sem anúncios" TextColor="#D4AF60" FontSize="12"/>
+                    <Label Text="· Bônus diário dobrado (60–300 fichas)" TextColor="#D4AF60" FontSize="12"/>
+                    <Label Text="· +50 fichas bônus ao resgatar por dia" TextColor="#D4AF60" FontSize="12"/>
+                    <Label Text="· 20% desconto no buy-in da Liga" TextColor="#D4AF60" FontSize="12"/>
+                    <Label Text="· Badge ◆ Grande Mestre em destaque" TextColor="#D4AF60" FontSize="12"/>
+                    <Label Text="· Missão bônus diária (+30 fichas)" TextColor="#D4AF60" FontSize="12"/>
+                    <Button x:Name="OuroBtn"
+                            Text="Assinar Grande Mestre — R$ 9,90/mês"
+                            Clicked="OnOuroClicked"
+                            BackgroundColor="#8B6914" TextColor="White"
+                            FontAttributes="Bold" FontSize="14"
+                            CornerRadius="10" HeightRequest="46"
+                            Margin="0,6,0,0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Cancelar assinatura -->
+            <Label x:Name="CancelLink"
+                   Text="Cancelar assinatura"
+                   TextColor="#5A4040" FontSize="12"
+                   HorizontalTextAlignment="Center"
+                   IsVisible="False">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCancelClicked"/>
+                </Label.GestureRecognizers>
+            </Label>
+
+            <!-- Nota legal -->
+            <Label Text="Assinatura simulada — sem cobrança real."
+                   TextColor="#2A3A50" FontSize="10"
+                   HorizontalTextAlignment="Center" Margin="0,16,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

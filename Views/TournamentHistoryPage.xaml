@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.TournamentHistoryPage"
+             Title="Extrato"
+             BackgroundColor="#1A1A2E">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- Resumo financeiro -->
+        <Border Grid.Row="0" BackgroundColor="#16213E" StrokeThickness="0" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                    <Label Text="SALDO ATUAL" TextColor="#AAAACC" FontSize="10"/>
+                    <Label x:Name="BalanceLabel" Text="$ 0"
+                           TextColor="#FFD700" FontSize="20" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <Border Grid.Column="1" BackgroundColor="#0A1E0A"
+                        Stroke="#4CAF50" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="12,8">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="1">
+                        <Label Text="ENTRADAS" TextColor="#4CAF50" FontSize="9" HorizontalTextAlignment="Center"/>
+                        <Label x:Name="CreditsLabel" Text="$ 0"
+                               TextColor="#4CAF50" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="2" BackgroundColor="#1E0A0A"
+                        Stroke="#FF5252" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="12,8">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="1">
+                        <Label Text="SAÍDAS" TextColor="#FF5252" FontSize="9" HorizontalTextAlignment="Center"/>
+                        <Label x:Name="DebitsLabel" Text="$ 0"
+                               TextColor="#FF5252" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Filtros -->
+        <Border Grid.Row="1" BackgroundColor="#16213E" StrokeThickness="0" Padding="12,8">
+            <FlexLayout x:Name="FilterBar" Direction="Row" Wrap="Wrap"
+                        JustifyContent="Start" AlignItems="Center"/>
+        </Border>
+
+        <!-- Separador -->
+        <BoxView Grid.Row="2" Color="#0F3460" HeightRequest="1"/>
+
+        <!-- Lista de transações -->
+        <ScrollView Grid.Row="3">
+            <VerticalStackLayout x:Name="TransactionList" BackgroundColor="#0E1322" Spacing="0"/>
+        </ScrollView>
+
+    </Grid>
+</ContentPage>

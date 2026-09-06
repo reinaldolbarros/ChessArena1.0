@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.FriendInvitePage"
+             Title="Com Amigo"
+             BackgroundColor="#001B26">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="18,16,18,8" Spacing="14">
+
+                <!-- ══ Cabeçalho ══ -->
+                <Label Text="Com Amigo"
+                       TextColor="#F2F5F8" FontSize="24" FontAttributes="Bold"
+                       Margin="0,0,0,2"/>
+
+                <!-- ══ Seletores de modo ══ -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Border x:Name="TabSameTelaCard"
+                            BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.5"
+                            StrokeShape="RoundRectangle 14" Padding="0,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTabSameTelaTapped"/>
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout HorizontalOptions="Center" Spacing="3">
+                            <Label Text="♟" FontSize="22" HorizontalTextAlignment="Center"
+                                   TextColor="#4AA3FF"/>
+                            <Label x:Name="TabSameTelaLabel" Text="Na Mesa"
+                                   TextColor="#4AA3FF" FontSize="13" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                            <Label Text="celular entre os dois" TextColor="#4A6A8A" FontSize="11"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" x:Name="TabOnlineCard"
+                            BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14" Padding="0,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTabOnlineTapped"/>
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout HorizontalOptions="Center" Spacing="3">
+                            <Label Text="🔗" FontSize="20" HorizontalTextAlignment="Center"/>
+                            <Label x:Name="TabOnlineLabel" Text="Online"
+                                   TextColor="#6A8AAA" FontSize="13" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                            <Label Text="cada um no seu celular" TextColor="#3A5070" FontSize="11"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- ══ NA MESA ══ -->
+                <VerticalStackLayout x:Name="SameDeviceSection" Spacing="14">
+
+                    <!-- Dica discreta de orientação -->
+                    <Border BackgroundColor="#040E1A" Stroke="#1E3A5A" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10" Padding="12,8">
+                        <Label Text="Coloque o celular deitado entre os dois jogadores. O tabuleiro vira automaticamente a cada lance — como no xadrez físico."
+                               TextColor="#4A6A8A" FontSize="12"
+                               HorizontalTextAlignment="Center"
+                               LineBreakMode="WordWrap"/>
+                    </Border>
+
+                    <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                            StrokeShape="RoundRectangle 16" Padding="16,14">
+                        <VerticalStackLayout Spacing="12">
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="JOGADOR 1 — BRANCAS" TextColor="#6A8AAA" FontSize="11"
+                                       FontAttributes="Bold" CharacterSpacing="1"/>
+                                <Border BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 10" Padding="14,0">
+                                    <Entry x:Name="Player1Entry"
+                                           Placeholder="Nome" PlaceholderColor="#3A5070"
+                                           TextColor="#F2F5F8" FontSize="16"
+                                           HeightRequest="46" BackgroundColor="Transparent"
+                                           MaxLength="20" TextChanged="OnNamesChanged"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <BoxView Color="#1E3A5A" HeightRequest="1"/>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="JOGADOR 2 — PRETAS" TextColor="#6A8AAA" FontSize="11"
+                                       FontAttributes="Bold" CharacterSpacing="1"/>
+                                <Border BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 10" Padding="14,0">
+                                    <Entry x:Name="Player2Entry"
+                                           Placeholder="Nome" PlaceholderColor="#3A5070"
+                                           TextColor="#F2F5F8" FontSize="16"
+                                           HeightRequest="46" BackgroundColor="Transparent"
+                                           MaxLength="20" TextChanged="OnNamesChanged"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <Label x:Name="ColorInfoLabel" Text=""
+                                   TextColor="#6A8AAA" FontSize="12"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="WordWrap"/>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                </VerticalStackLayout>
+
+                <!-- ══ CÓDIGO ONLINE ══ -->
+                <VerticalStackLayout x:Name="OnlineSection" IsVisible="False" Spacing="14">
+
+                    <!-- Sub-tabs -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Border x:Name="SubTabCriarCard"
+                                BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.5"
+                                StrokeShape="RoundRectangle 10" Padding="0,11">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSubTabCriarTapped"/>
+                            </Border.GestureRecognizers>
+                            <Label x:Name="SubTabCriarLabel" Text="Criar Desafio"
+                                   TextColor="#4AA3FF" FontSize="13" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Column="1" x:Name="SubTabEntrarCard"
+                                BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10" Padding="0,11">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSubTabEntrarTapped"/>
+                            </Border.GestureRecognizers>
+                            <Label x:Name="SubTabEntrarLabel" Text="Entrar com Código"
+                                   TextColor="#6A8AAA" FontSize="13" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- ─ Criar Desafio ─ -->
+                    <VerticalStackLayout x:Name="CriarSection" Spacing="14">
+
+                        <!-- Nome do desafiante (online) -->
+                        <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                                StrokeShape="RoundRectangle 16" Padding="16,14">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="SEU NOME" TextColor="#6A8AAA" FontSize="11"
+                                       FontAttributes="Bold" CharacterSpacing="1"/>
+                                <Border BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 10" Padding="14,0">
+                                    <Entry x:Name="ChallengerNameEntry"
+                                           Placeholder="Seu nome" PlaceholderColor="#3A5070"
+                                           TextColor="#F2F5F8" FontSize="16"
+                                           HeightRequest="46" BackgroundColor="Transparent"
+                                           MaxLength="20"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Código gerado (oculto até gerar) -->
+                        <Border x:Name="CodeDisplayCard" IsVisible="False"
+                                BackgroundColor="#061F33" Stroke="#2E7DDB" StrokeThickness="1.4"
+                                StrokeShape="RoundRectangle 16" Padding="20,18">
+                            <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                                <Label Text="Compartilhe este código com seu amigo"
+                                       TextColor="#9FB3C8" FontSize="13"
+                                       HorizontalTextAlignment="Center"/>
+
+                                <!-- Código grande -->
+                                <Border BackgroundColor="#0A1E36" Stroke="#2E7DDB" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 12" Padding="28,14"
+                                        HorizontalOptions="Center">
+                                    <Label x:Name="GeneratedCodeLabel" Text="------"
+                                           TextColor="#4AA3FF" FontSize="40" FontAttributes="Bold"
+                                           HorizontalTextAlignment="Center" CharacterSpacing="8"/>
+                                </Border>
+
+                                <!-- Ações: copiar e compartilhar -->
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Button x:Name="CopyCodeBtn" Text="Copiar"
+                                            Clicked="OnCopyCodeClicked"
+                                            BackgroundColor="#0D2A4A" TextColor="#4AA3FF"
+                                            FontSize="14" FontAttributes="Bold"
+                                            CornerRadius="10" HeightRequest="42"/>
+                                    <Button Grid.Column="1" Text="Compartilhar ↗"
+                                            Clicked="OnShareCodeClicked"
+                                            BackgroundColor="#0D2A4A" TextColor="#4AA3FF"
+                                            FontSize="14" FontAttributes="Bold"
+                                            CornerRadius="10" HeightRequest="42"/>
+                                </Grid>
+
+                                <BoxView Color="#1E3A5A" HeightRequest="1"/>
+
+                                <!-- Aguardando -->
+                                <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                                    <ActivityIndicator x:Name="WaitingSpinner"
+                                                       IsRunning="True" IsVisible="True"
+                                                       Color="#2E7DDB"
+                                                       WidthRequest="16" HeightRequest="16"/>
+                                    <Label x:Name="WaitingLabel"
+                                           Text="Passe o celular ao amigo → 'Entrar com Código'"
+                                           TextColor="#9FB3C8" FontSize="12"
+                                           VerticalOptions="Center"
+                                           LineBreakMode="WordWrap"/>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                    <!-- ─ Entrar com Código ─ -->
+                    <VerticalStackLayout x:Name="EntrarSection" IsVisible="False" Spacing="14">
+
+                        <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                                StrokeShape="RoundRectangle 16" Padding="16,20">
+                            <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                                <Label Text="Digite o código do desafio"
+                                       TextColor="#9FB3C8" FontSize="13"
+                                       HorizontalTextAlignment="Center"/>
+                                <Border BackgroundColor="#040F1A" Stroke="#2E7DDB" StrokeThickness="1.5"
+                                        StrokeShape="RoundRectangle 12" Padding="24,0"
+                                        HorizontalOptions="Center" WidthRequest="210">
+                                    <Entry x:Name="CodeEntry"
+                                           Placeholder="A7KM2P"
+                                           PlaceholderColor="#2A4060"
+                                           TextColor="#4AA3FF" FontSize="34" FontAttributes="Bold"
+                                           HeightRequest="60" BackgroundColor="Transparent"
+                                           MaxLength="6" HorizontalTextAlignment="Center"
+                                           Keyboard="Text" TextChanged="OnCodeEntryChanged"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Desafio encontrado -->
+                        <Border x:Name="ChallengeFoundCard" IsVisible="False"
+                                BackgroundColor="#071F3C" Stroke="#4CAF50" StrokeThickness="1.4"
+                                StrokeShape="RoundRectangle 16" Padding="16,14">
+                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                <Label Text="✓  Desafio encontrado!"
+                                       TextColor="#4CAF50" FontSize="13" FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center"/>
+                                <Label x:Name="ChallengeInfoLabel" Text=""
+                                       TextColor="#F2F5F8" FontSize="17" FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center"/>
+                                <Label x:Name="ChallengeTimeLabel" Text=""
+                                       TextColor="#9FB3C8" FontSize="13"
+                                       HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Código não encontrado -->
+                        <Border x:Name="ChallengeNotFoundCard" IsVisible="False"
+                                BackgroundColor="#220808" Stroke="#FF5252" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 14" Padding="16,12">
+                            <Label Text="Código não encontrado ou expirado."
+                                   TextColor="#FF7070" FontSize="13"
+                                   HorizontalTextAlignment="Center"/>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+
+                <!-- ══ Tempo por jogador (oculto no modo Entrar) ══ -->
+                <Border x:Name="TimeCard"
+                        BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                        StrokeShape="RoundRectangle 16" Padding="16,14">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Tempo por jogador"
+                               TextColor="#9FB3C8" FontSize="13" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"/>
+                        <Grid ColumnDefinitions="50,*,50">
+                            <Button x:Name="BtnDecrease" Text="−"
+                                    Clicked="OnDecrease"
+                                    BackgroundColor="#0D2A4A" TextColor="#F2F5F8"
+                                    FontSize="24" FontAttributes="Bold" CornerRadius="25"
+                                    WidthRequest="46" HeightRequest="46"
+                                    HorizontalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                                <Label x:Name="TimeValueLabel" Text="∞"
+                                       TextColor="#F2F5F8" FontSize="44" FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center" LineHeight="1"/>
+                                <Label x:Name="TimeUnitLabel" Text="sem limite"
+                                       TextColor="#9FB3C8" FontSize="13"
+                                       HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="2" x:Name="BtnIncrease" Text="+"
+                                    Clicked="OnIncrease"
+                                    BackgroundColor="#0D2A4A" TextColor="#F2F5F8"
+                                    FontSize="24" FontAttributes="Bold" CornerRadius="25"
+                                    WidthRequest="46" HeightRequest="46"
+                                    HorizontalOptions="Center"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ══ Rodapé fixo ══ -->
+        <VerticalStackLayout Grid.Row="1" Padding="18,10,18,28" Spacing="0"
+                             BackgroundColor="#001B26">
+            <Button x:Name="ActionBtn"
+                    Text="▶  Iniciar Partida"
+                    Clicked="OnActionClicked"
+                    BackgroundColor="#1F6B36" TextColor="White"
+                    FontAttributes="Bold" FontSize="17"
+                    CornerRadius="14" HeightRequest="54"/>
+        </VerticalStackLayout>
+
+    </Grid>
+</ContentPage>

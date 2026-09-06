@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.LeaguePage"
+             Title="Liga ChessArena"
+             BackgroundColor="#0A1020">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,18,20,40" Spacing="0">
+
+            <!-- ══ Cabeçalho da temporada ══ -->
+            <Border BackgroundColor="#0D1828" Stroke="#2A4070" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12" Padding="16,14" Margin="0,0,0,12">
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="LIGA CHESSARENA" TextColor="#7AAAF0"
+                               FontSize="14" FontAttributes="Bold" CharacterSpacing="1.5"/>
+                        <Label x:Name="SeasonLabel" Text="Abril 2026"
+                               TextColor="White" FontSize="18" FontAttributes="Bold"/>
+                        <HorizontalStackLayout Spacing="8">
+                            <Label x:Name="TitleIcon" Text="♟" FontSize="18" VerticalOptions="Center"/>
+                            <Label x:Name="TitleLabelText" Text="Recruta"
+                                   TextColor="#8AADCC" FontSize="15" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="End" VerticalOptions="Center" Spacing="2">
+                        <Label Text="SEUS PONTOS" TextColor="#A8BCCC" FontSize="11"
+                               HorizontalTextAlignment="End" CharacterSpacing="1"/>
+                        <Label x:Name="SeasonPointsLabel" Text="0"
+                               TextColor="#FFD700" FontSize="28" FontAttributes="Bold"
+                               HorizontalTextAlignment="End"/>
+                        <Label x:Name="PlayerPositionLabel" Text="—"
+                               TextColor="#A8BCCC" FontSize="15" HorizontalTextAlignment="End"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <!-- ══ Top 3 da temporada ══ -->
+            <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12" Padding="16,12" Margin="0,0,0,12">
+                <VerticalStackLayout Spacing="4">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                        <Label Text="Temporada Atual" TextColor="White"
+                               FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="Ver ranking completo →"
+                               TextColor="#7AAAF0" FontSize="14" VerticalOptions="Center">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnRankingClicked"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </Grid>
+                    <VerticalStackLayout x:Name="MiniLeaderboard" Spacing="4"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ══ Próximos Eventos ══ -->
+            <Label Text="PRÓXIMOS EVENTOS" TextColor="#7AAAF0" FontSize="14"
+                   FontAttributes="Bold" CharacterSpacing="1.5" Margin="2,0,0,8"/>
+            <VerticalStackLayout x:Name="EventsContainer" Spacing="10" Margin="0,0,0,16"/>
+
+            <!-- ══ Progresso de título ══ -->
+            <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12" Padding="16,14" Margin="0,0,0,12">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="TÍTULO" TextColor="#A8BCCC" FontSize="14"
+                           FontAttributes="Bold" CharacterSpacing="1"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label x:Name="BigTitleIcon" Text="♟" FontSize="32" VerticalOptions="Center"/>
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                            <Label x:Name="BigTitleLabel" Text="Recruta"
+                                   TextColor="White" FontSize="17" FontAttributes="Bold"/>
+                            <Label x:Name="NextReqLabel" Text="Participe de 3 torneios da Liga"
+                                   TextColor="#8AADCC" FontSize="15"/>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10" Margin="0,4,0,0">
+                        <Label Text="Participações:" TextColor="#A8BCCC" FontSize="15" VerticalOptions="Center"/>
+                        <Label x:Name="ParticipationsLabel" Grid.Column="1" Text="0"
+                               TextColor="White" FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
+                        <Label Grid.Column="2" Text="Vitórias:" TextColor="#A8BCCC" FontSize="15" VerticalOptions="Center"/>
+                        <Label x:Name="WinsLabel" Grid.Column="3" Text="0"
+                               TextColor="#FFD700" FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ══ Links ══ -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Border BackgroundColor="#111D32" Stroke="#2A4070" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="14,12">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
+                        <Label Text="♛" FontSize="22" HorizontalTextAlignment="Center" TextColor="#FFD700"/>
+                        <Label Text="Ranking" TextColor="White" FontSize="14" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"/>
+                        <Label Text="Temporada atual" TextColor="#A8BCCC" FontSize="14"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRankingClicked"/>
+                    </Border.GestureRecognizers>
+                </Border>
+
+                <Border Grid.Column="1" BackgroundColor="#111D32" Stroke="#2A4070" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="14,12">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
+                        <Label Text="♚" FontSize="22" HorizontalTextAlignment="Center" TextColor="#C0A020"/>
+                        <Label Text="Hall da Fama" TextColor="White" FontSize="14" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"/>
+                        <Label Text="Campeões anteriores" TextColor="#A8BCCC" FontSize="14"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnHallOfFameClicked"/>
+                    </Border.GestureRecognizers>
+                </Border>
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

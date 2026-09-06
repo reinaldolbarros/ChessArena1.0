@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.ProfilePage"
+             Title="Perfil"
+             BackgroundColor="#0A1020">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="28,24,28,40" Spacing="20">
+
+            <!-- ══ Avatar ══ -->
+            <VerticalStackLayout HorizontalOptions="Center" Spacing="12">
+
+                <!-- Exibição do avatar -->
+                <Border x:Name="AvatarBorder"
+                        BackgroundColor="#111D32" Stroke="#2A4070" StrokeThickness="2"
+                        StrokeShape="RoundRectangle 50"
+                        WidthRequest="100" HeightRequest="100"
+                        HorizontalOptions="Center">
+                    <Grid>
+                        <Label x:Name="AvatarLabel" Text="♟" FontSize="46"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+                        <Image x:Name="AvatarImage" IsVisible="False"
+                               Aspect="AspectFill"
+                               WidthRequest="100" HeightRequest="100"/>
+                    </Grid>
+                </Border>
+
+                <!-- Botões de avatar -->
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                    <Button Text="♟ Escolher emoji"
+                            Clicked="OnPickEmojiClicked"
+                            BackgroundColor="#1A3A65" TextColor="#5A8AD0"
+                            FontSize="12" CornerRadius="8"
+                            HeightRequest="36" Padding="14,0"/>
+                    <Button Text="📷 Usar foto"
+                            Clicked="OnPickPhotoClicked"
+                            BackgroundColor="#1A3A65" TextColor="#5A8AD0"
+                            FontSize="12" CornerRadius="8"
+                            HeightRequest="36" Padding="14,0"/>
+                </HorizontalStackLayout>
+
+                <Label x:Name="AvatarHint" Text="Avatar opcional"
+                       TextColor="#7A90A8" FontSize="12"
+                       HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <!-- ══ Campos ══ -->
+            <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12" Padding="20,16">
+                <VerticalStackLayout Spacing="16">
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Nome" TextColor="#8AADCC" FontSize="12"/>
+                        <Border BackgroundColor="#111D32" Stroke="#1C3050" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8">
+                            <Entry x:Name="NameEntry" Placeholder="Seu nome"
+                                   PlaceholderColor="#3A5070" TextColor="White"
+                                   FontSize="15" Margin="4,0"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="País" TextColor="#8AADCC" FontSize="12"/>
+                        <Border BackgroundColor="#111D32" Stroke="#1C3050" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8" Padding="8,0">
+                            <Picker x:Name="CountryPicker"
+                                    Title="Selecione o país"
+                                    TitleColor="#3A5070" TextColor="White"
+                                    BackgroundColor="Transparent"
+                                    SelectedIndexChanged="OnCountryChanged"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout x:Name="StateSection" Spacing="4" IsVisible="False">
+                        <Label Text="Estado" TextColor="#8AADCC" FontSize="12"/>
+                        <Border BackgroundColor="#111D32" Stroke="#1C3050" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8" Padding="8,0">
+                            <Picker x:Name="StatePicker"
+                                    Title="Selecione o estado"
+                                    TitleColor="#3A5070" TextColor="White"
+                                    BackgroundColor="Transparent"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ══ Salvar ══ -->
+            <Button Text="Salvar"
+                    Clicked="OnSaveClicked"
+                    BackgroundColor="#769656" TextColor="White"
+                    FontAttributes="Bold" FontSize="15"
+                    CornerRadius="12" HeightRequest="50"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

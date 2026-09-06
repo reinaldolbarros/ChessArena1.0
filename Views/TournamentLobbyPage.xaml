@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.TournamentLobbyPage"
+             Title="Torneios"
+             BackgroundColor="#1A1A2E">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+        <!-- ══ Cabeçalho ══ -->
+        <Grid Grid.Row="0" BackgroundColor="#16213E" Padding="14,8"
+              ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+            <VerticalStackLayout VerticalOptions="Center" Spacing="1">
+                <Label Text="Arena Casual" TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                <Label Text="Ranking →" TextColor="#9ACAFF" FontSize="14">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRankingClicked"/>
+                    </Label.GestureRecognizers>
+                </Label>
+            </VerticalStackLayout>
+            <Border Grid.Column="1" BackgroundColor="#0F3460"
+                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                    Padding="12,5" VerticalOptions="Center">
+                <HorizontalStackLayout Spacing="6">
+                    <Label Text="💰" FontSize="14" VerticalOptions="Center"/>
+                    <Label x:Name="BalanceLabel" Text="$ 0"
+                           TextColor="#4CAF50" FontSize="15" FontAttributes="Bold"
+                           VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- ══ Abas de tipo ══ -->
+        <FlexLayout Grid.Row="1" x:Name="TypeTabBar"
+                    Wrap="Wrap" Direction="Row"
+                    JustifyContent="Start" AlignItems="Center"
+                    BackgroundColor="#16213E"
+                    Padding="10,8"/>
+
+        <!-- ══ Filtros de buy-in ══ -->
+        <ScrollView Grid.Row="2" x:Name="FilterScrollView"
+                    Orientation="Horizontal" BackgroundColor="#12172A">
+            <HorizontalStackLayout x:Name="FilterBar" Spacing="6" Padding="10,6"/>
+        </ScrollView>
+
+        <!-- ══ Cabeçalho da tabela ══ -->
+        <Grid Grid.Row="3" x:Name="TableHeader"
+              ColumnDefinitions="*,72,72,72,60"
+              BackgroundColor="#0F3460"
+              Padding="14,5">
+            <Label Text="Mesa"     TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold"/>
+            <Label Grid.Column="1" Text="Jogadores" TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Grid.Column="2" Text="Buy-in"    TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Grid.Column="3" Text="Prêmio"    TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Grid.Column="4" Text="Tempo"     TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+        </Grid>
+
+        <!-- ══ Lista de salas ══ -->
+        <ScrollView Grid.Row="4" x:Name="RoomScrollView">
+            <VerticalStackLayout x:Name="RoomList" Spacing="1"/>
+        </ScrollView>
+
+        <!-- ══ Painel personalizado (oculto por padrão) ══ -->
+        <ScrollView Grid.Row="4" x:Name="CustomPanel" IsVisible="False">
+            <VerticalStackLayout x:Name="CustomContainer" Padding="16,14" Spacing="20"/>
+        </ScrollView>
+    </Grid>
+</ContentPage>

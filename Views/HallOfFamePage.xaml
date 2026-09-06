@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.HallOfFamePage"
+             Title="Hall da Fama"
+             BackgroundColor="#0A1020">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,18,20,40" Spacing="0">
+
+            <Label Text="♚  HALL DA FAMA" TextColor="#C0A020"
+                   FontSize="22" FontAttributes="Bold"
+                   HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+            <Label Text="Campeões mensais da Liga ChessArena"
+                   TextColor="#A8BCCC" FontSize="13"
+                   HorizontalTextAlignment="Center" Margin="0,0,0,20"/>
+
+            <VerticalStackLayout x:Name="HofContainer" Spacing="10"/>
+
+            <Label x:Name="EmptyLabel"
+                   Text="Nenhuma temporada encerrada ainda.\nJogue torneios da Liga para aparecer aqui!"
+                   TextColor="#A0ACBA" FontSize="13"
+                   HorizontalTextAlignment="Center"
+                   IsVisible="False" Margin="0,40,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

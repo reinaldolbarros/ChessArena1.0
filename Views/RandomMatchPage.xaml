@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.RandomMatchPage"
+             Title="Jogar Online"
+             BackgroundColor="#001B26">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24,28,24,40" Spacing="0">
+
+            <!-- ══ Seção 1: Escolha de Tempo ══ -->
+            <VerticalStackLayout x:Name="SelectionSection" Spacing="0">
+
+                <Label Text="Tempo por jogador"
+                       TextColor="#9FB3C8" FontSize="13" FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       CharacterSpacing="1.5"
+                       Margin="0,0,0,20"/>
+
+                <!-- Card do stepper -->
+                <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                        StrokeShape="RoundRectangle 20" Padding="24,28"
+                        Margin="0,0,0,20">
+                    <VerticalStackLayout Spacing="0">
+
+                        <!-- − | valor | + -->
+                        <Grid ColumnDefinitions="64,*,64" VerticalOptions="Center">
+                            <Button Text="−"
+                                    x:Name="BtnDecrease"
+                                    Clicked="OnDecrease"
+                                    BackgroundColor="#0D2A4A" TextColor="White"
+                                    FontSize="30" FontAttributes="Bold"
+                                    CornerRadius="32"
+                                    WidthRequest="56" HeightRequest="56"
+                                    HorizontalOptions="Center" VerticalOptions="Center"/>
+
+                            <VerticalStackLayout Grid.Column="1"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center"
+                                                Spacing="0">
+                                <Label x:Name="TimeValueLabel" Text="7"
+                                       TextColor="#F2F5F8" FontSize="72" FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center"
+                                       LineHeight="1"/>
+                                <Label Text="minuto(s)"
+                                       TextColor="#9FB3C8" FontSize="14"
+                                       HorizontalTextAlignment="Center"
+                                       Margin="0,2,0,4"/>
+                            </VerticalStackLayout>
+
+                            <Button Grid.Column="2" Text="+"
+                                    x:Name="BtnIncrease"
+                                    Clicked="OnIncrease"
+                                    BackgroundColor="#0D2A4A" TextColor="White"
+                                    FontSize="30" FontAttributes="Bold"
+                                    CornerRadius="32"
+                                    WidthRequest="56" HeightRequest="56"
+                                    HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Grid>
+
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <Button Text="Buscar Oponente"
+                        Clicked="OnSearchClicked"
+                        BackgroundColor="#2A67B1" TextColor="White"
+                        FontAttributes="Bold" FontSize="17"
+                        CornerRadius="14" HeightRequest="54"/>
+
+            </VerticalStackLayout>
+
+            <!-- ══ Seção 2: Buscando ══ -->
+            <VerticalStackLayout x:Name="SearchingSection" IsVisible="False" Spacing="0">
+
+                <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                        StrokeShape="RoundRectangle 20" Padding="28,36">
+                    <VerticalStackLayout Spacing="20" HorizontalOptions="Center">
+
+                        <ActivityIndicator x:Name="SearchSpinner"
+                                           IsRunning="True" Color="#4AA3FF"
+                                           WidthRequest="52" HeightRequest="52"
+                                           HorizontalOptions="Center"/>
+
+                        <Label x:Name="SearchingLabel"
+                               Text="Procurando oponente..."
+                               TextColor="#F2F5F8" FontSize="18" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"/>
+
+                        <Label x:Name="SearchSubLabel" Text=""
+                               TextColor="#9FB3C8" FontSize="14"
+                               HorizontalTextAlignment="Center"/>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <Button Text="Cancelar"
+                        Clicked="OnCancelClicked"
+                        BackgroundColor="Transparent" TextColor="#6A8AAA"
+                        BorderColor="#1E3A5A" BorderWidth="1"
+                        FontSize="15" CornerRadius="12" HeightRequest="46"
+                        Margin="0,16,0,0"/>
+
+            </VerticalStackLayout>
+
+            <!-- ══ Seção 3: Partida Confirmada ══ -->
+            <VerticalStackLayout x:Name="ConfirmedSection" IsVisible="False" Spacing="16">
+
+                <Label Text="✓  Oponente encontrado!"
+                       TextColor="#4CAF50" FontSize="20" FontAttributes="Bold"
+                       HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+
+                <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                        StrokeShape="RoundRectangle 18" Padding="18,16">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Border WidthRequest="44" HeightRequest="44"
+                                BackgroundColor="#0D2A4A" StrokeThickness="0"
+                                StrokeShape="RoundRectangle 22">
+                            <Label Text="♟" FontSize="26"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center"/>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Margin="14,0,0,0"
+                                            Spacing="3" VerticalOptions="Center">
+                            <Label x:Name="OppNameLabel" Text="Oponente"
+                                   TextColor="#F2F5F8" FontSize="17" FontAttributes="Bold"/>
+                            <Label x:Name="OppRatingLabel" Text="Rating: —"
+                                   TextColor="#9FB3C8" FontSize="14"/>
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2"
+                                BackgroundColor="#0A2A14" StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="10,5" VerticalOptions="Center">
+                            <Label Text="● Online"
+                                   TextColor="#4CAF50" FontSize="12" FontAttributes="Bold"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Label x:Name="ConfirmedDetailsLabel" Text=""
+                       TextColor="#9FB3C8" FontSize="14"
+                       HorizontalTextAlignment="Center"/>
+
+                <Border BackgroundColor="#071F3C" Stroke="#1E3A5A" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 14" Padding="16,12"
+                        HorizontalOptions="Center">
+                    <Label x:Name="CountdownLabel" Text="Iniciando em 3..."
+                           TextColor="#4AA3FF" FontSize="17" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"/>
+                </Border>
+
+                <Button Text="Cancelar"
+                        Clicked="OnCountdownCancelled"
+                        BackgroundColor="Transparent" TextColor="#6A8AAA"
+                        BorderColor="#1E3A5A" BorderWidth="1"
+                        FontSize="15" CornerRadius="12" HeightRequest="44"
+                        Margin="0,4,0,0"/>
+
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

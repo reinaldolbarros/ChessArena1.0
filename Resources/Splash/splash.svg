@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0A1020"/>
+
+  <!-- Tabuleiro sutil -->
+  <rect x="0"   y="0"   width="64" height="64" fill="#111828"/>
+  <rect x="128" y="0"   width="64" height="64" fill="#111828"/>
+  <rect x="256" y="0"   width="64" height="64" fill="#111828"/>
+  <rect x="384" y="0"   width="64" height="64" fill="#111828"/>
+  <rect x="64"  y="64"  width="64" height="64" fill="#111828"/>
+  <rect x="192" y="64"  width="64" height="64" fill="#111828"/>
+  <rect x="320" y="64"  width="64" height="64" fill="#111828"/>
+  <rect x="448" y="64"  width="64" height="64" fill="#111828"/>
+  <rect x="0"   y="128" width="64" height="64" fill="#111828"/>
+  <rect x="128" y="128" width="64" height="64" fill="#111828"/>
+  <rect x="256" y="128" width="64" height="64" fill="#111828"/>
+  <rect x="384" y="128" width="64" height="64" fill="#111828"/>
+  <rect x="64"  y="192" width="64" height="64" fill="#111828"/>
+  <rect x="192" y="192" width="64" height="64" fill="#111828"/>
+  <rect x="320" y="192" width="64" height="64" fill="#111828"/>
+  <rect x="448" y="192" width="64" height="64" fill="#111828"/>
+  <rect x="0"   y="256" width="64" height="64" fill="#111828"/>
+  <rect x="128" y="256" width="64" height="64" fill="#111828"/>
+  <rect x="256" y="256" width="64" height="64" fill="#111828"/>
+  <rect x="384" y="256" width="64" height="64" fill="#111828"/>
+  <rect x="64"  y="320" width="64" height="64" fill="#111828"/>
+  <rect x="192" y="320" width="64" height="64" fill="#111828"/>
+  <rect x="320" y="320" width="64" height="64" fill="#111828"/>
+  <rect x="448" y="320" width="64" height="64" fill="#111828"/>
+  <rect x="0"   y="384" width="64" height="64" fill="#111828"/>
+  <rect x="128" y="384" width="64" height="64" fill="#111828"/>
+  <rect x="256" y="384" width="64" height="64" fill="#111828"/>
+  <rect x="384" y="384" width="64" height="64" fill="#111828"/>
+  <rect x="64"  y="448" width="64" height="64" fill="#111828"/>
+  <rect x="192" y="448" width="64" height="64" fill="#111828"/>
+  <rect x="320" y="448" width="64" height="64" fill="#111828"/>
+  <rect x="448" y="448" width="64" height="64" fill="#111828"/>
+
+  <!-- Rei: sombras escuras atrás + peça branca (desenhado primeiro = atrás) -->
+  <text x="218" y="382"
+        text-anchor="middle"
+        font-family="serif"
+        font-size="230"
+        fill="#050810">&#x265A;</text>
+  <text x="215" y="378"
+        text-anchor="middle"
+        font-family="serif"
+        font-size="228"
+        fill="#0D1520" opacity="0.6">&#x265A;</text>
+  <text x="212" y="374"
+        text-anchor="middle"
+        font-family="serif"
+        font-size="226"
+        fill="#1A2030" opacity="0.3">&#x265A;</text>
+  <text x="210" y="370"
+        text-anchor="middle"
+        font-family="serif"
+        font-size="224"
+        fill="white">&#x265A;</text>
+
+  <!-- Cavalo: glow branco atrás + peça preta na frente (desenhado por último = frente) -->
+  <text x="302" y="380"
+        text-anchor="middle"
+        font-family="serif"
+        font-size="210"
+        fill="white">&#x265E;</text>
+  <text x="300" y="378"
+        text-anchor="middle"
+        font-family="serif"
+        font-size="200"
+        fill="#111111">&#x265E;</text>
+
+  <!-- Nome do app -->
+  <text x="256" y="462"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="52"
+        font-weight="bold"
+        letter-spacing="2"
+        fill="white">ChessArena</text>
+
+</svg>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.AdminPage"
+             Title="Painel Admin"
+             BackgroundColor="#0D0D1A">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- ══ Cabeçalho ══ -->
+        <Grid Grid.Row="0" BackgroundColor="#0F1628" Padding="16,12"
+              ColumnDefinitions="*,Auto">
+            <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                <Label Text="⚙  Painel Administrativo"
+                       TextColor="White" FontSize="16" FontAttributes="Bold"/>
+                <Label Text="Extrato financeiro · Somente leitura"
+                       TextColor="#AAAACC" FontSize="11"/>
+            </VerticalStackLayout>
+            <Border Grid.Column="1" BackgroundColor="#1A2A1A"
+                    Stroke="#4CAF50" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 8" Padding="10,5">
+                <Label x:Name="TotalRakeLabel" Text="$ 0"
+                       TextColor="#4CAF50" FontSize="18" FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"/>
+            </Border>
+        </Grid>
+
+        <!-- ══ Conteúdo rolável ══ -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16,12" Spacing="10">
+
+                <!-- ══ Cards de resumo ══ -->
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                    <Border BackgroundColor="#16213E" Stroke="#0F3460" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10" Padding="10,8">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="TodayRakeLabel" Text="$ 0"
+                                   TextColor="#FFD700" FontSize="16" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                            <Label Text="Hoje" TextColor="#AAAACC" FontSize="10"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" BackgroundColor="#16213E" Stroke="#0F3460" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10" Padding="10,8">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="WeekRakeLabel" Text="$ 0"
+                                   TextColor="#7B68EE" FontSize="16" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                            <Label Text="Semana" TextColor="#AAAACC" FontSize="10"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="2" BackgroundColor="#16213E" Stroke="#0F3460" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10" Padding="10,8">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="AvgRakeLabel" Text="$ 0"
+                                   TextColor="#FF9800" FontSize="16" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"/>
+                            <Label Text="Média/Torn." TextColor="#AAAACC" FontSize="10"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- ══ Contador de torneios ══ -->
+                <Border BackgroundColor="#16213E" Stroke="#0F3460" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 10" Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Total de torneios realizados"
+                               TextColor="#AAAACC" FontSize="13" VerticalOptions="Center"/>
+                        <Label x:Name="TotalTournsLabel" Text="0"
+                               Grid.Column="1"
+                               TextColor="White" FontSize="20" FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- ══ Cabeçalho da lista ══ -->
+                <Grid ColumnDefinitions="*,72,60,60" Padding="4,0">
+                    <Label Text="Torneio" TextColor="#555577" FontSize="10" FontAttributes="Bold"/>
+                    <Label Grid.Column="1" Text="Tipo"    TextColor="#555577" FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    <Label Grid.Column="2" Text="Buy-in"  TextColor="#555577" FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    <Label Grid.Column="3" Text="Rake"    TextColor="#555577" FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="End"/>
+                </Grid>
+
+                <!-- ══ Lista de transações ══ -->
+                <VerticalStackLayout x:Name="RakeList" Spacing="1"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+</ContentPage>

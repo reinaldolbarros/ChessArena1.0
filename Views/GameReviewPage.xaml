@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChessMAUI.Views.GameReviewPage"
+             BackgroundColor="#0D1117"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- ══ TOPO FIXO ══════════════════════════════════════════════════════ -->
+        <VerticalStackLayout Grid.Row="0" Spacing="0">
+
+            <!-- Header -->
+            <Grid ColumnDefinitions="48,*,48" Padding="10,50,10,6">
+                <Label Grid.Column="0" Text="←" FontSize="22" TextColor="#7AAEE8"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackTapped"/>
+                    </Label.GestureRecognizers>
+                </Label>
+                <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center"
+                                     VerticalOptions="Center" Spacing="2">
+                    <Label Text="Revisão da Partida"
+                           FontSize="16" FontAttributes="Bold" TextColor="#E6EDF3"
+                           HorizontalTextAlignment="Center"/>
+                    <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="6">
+                        <Label x:Name="HeaderSubtitle" Text=""
+                               FontSize="11" TextColor="#6E7681"/>
+                        <Border x:Name="AiBadge" IsVisible="False"
+                                BackgroundColor="#0D2A15" Stroke="#2A6A35" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 4" Padding="5,1">
+                            <Label Text="✦ Sonnet" FontSize="10" TextColor="#3FB950"/>
+                        </Border>
+                    </StackLayout>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Separador fino -->
+            <BoxView HeightRequest="1" BackgroundColor="#21262D" Margin="0,0,0,0"/>
+
+            <!-- Barra de precisão -->
+            <Grid ColumnDefinitions="*,30,*" Padding="16,10,16,10">
+
+                <!-- Brancas (esquerda) -->
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Label x:Name="WhiteAccuracyLabel" Grid.Column="0"
+                           Text="—%" FontSize="24" FontAttributes="Bold"
+                           TextColor="#D4A843" VerticalTextAlignment="Center"/>
+                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                        <Label x:Name="WhiteNameLabel" Text="Brancas"
+                               FontSize="12" FontAttributes="Bold" TextColor="#C9D1D9"/>
+                        <HorizontalStackLayout Spacing="6">
+                            <Label x:Name="WhiteBlunderLabel" Text="" FontSize="10" TextColor="#F85149"/>
+                            <Label x:Name="WhiteMistakeLabel" Text="" FontSize="10" TextColor="#E3AC5B"/>
+                            <Label x:Name="WhiteInaccLabel"   Text="" FontSize="10" TextColor="#CCA700"/>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- VS -->
+                <Label Grid.Column="1" Text="vs" FontSize="10" TextColor="#484F58"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+
+                <!-- Pretas (direita) -->
+                <Grid Grid.Column="2" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <VerticalStackLayout Grid.Column="0" HorizontalOptions="End"
+                                         VerticalOptions="Center" Spacing="1">
+                        <Label x:Name="BlackNameLabel" Text="Pretas"
+                               FontSize="12" FontAttributes="Bold" TextColor="#C9D1D9"
+                               HorizontalTextAlignment="End"/>
+                        <HorizontalStackLayout HorizontalOptions="End" Spacing="6">
+                            <Label x:Name="BlackBlunderLabel" Text="" FontSize="10" TextColor="#F85149"/>
+                            <Label x:Name="BlackMistakeLabel" Text="" FontSize="10" TextColor="#E3AC5B"/>
+                            <Label x:Name="BlackInaccLabel"   Text="" FontSize="10" TextColor="#CCA700"/>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                    <Label x:Name="BlackAccuracyLabel" Grid.Column="1"
+                           Text="—%" FontSize="24" FontAttributes="Bold"
+                           TextColor="#6E9ED4" VerticalTextAlignment="Center"/>
+                </Grid>
+            </Grid>
+
+            <!-- Separador -->
+            <BoxView HeightRequest="1" BackgroundColor="#21262D"/>
+
+            <!-- Grafo de avaliação -->
+            <GraphicsView x:Name="EvalGraph" HorizontalOptions="Fill" HeightRequest="28"/>
+
+            <!-- Tabuleiro (quadrado via SizeChanged) -->
+            <GraphicsView x:Name="ReviewBoard"
+                          HorizontalOptions="Fill"
+                          HeightRequest="320"
+                          SizeChanged="OnReviewBoardSizeChanged"/>
+
+            <!-- Legenda de setas -->
+            <Grid ColumnDefinitions="*,*,*" Padding="16,5,16,5" BackgroundColor="#0D1117">
+                <HorizontalStackLayout Grid.Column="0" Spacing="5" VerticalOptions="Center">
+                    <BoxView WidthRequest="16" HeightRequest="3" BackgroundColor="#DD2222"
+                             VerticalOptions="Center" CornerRadius="2"/>
+                    <Label x:Name="MoveBadge" Text="" FontSize="11" TextColor="#F85149"
+                           VerticalTextAlignment="Center"/>
+                </HorizontalStackLayout>
+                <Label x:Name="MoveInfoLabel" Grid.Column="1"
+                       Text="" FontSize="11" TextColor="#8B949E"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                <HorizontalStackLayout Grid.Column="2" Spacing="5"
+                                       HorizontalOptions="End" VerticalOptions="Center">
+                    <Label x:Name="EvalLabel" Text="" FontSize="11" TextColor="#7AAEE8"
+                           VerticalTextAlignment="Center"/>
+                </HorizontalStackLayout>
+            </Grid>
+
+            <!-- Separador -->
+            <BoxView HeightRequest="1" BackgroundColor="#21262D"/>
+
+        </VerticalStackLayout>
+
+        <!-- ══ ANÁLISE SCROLLÁVEL ═════════════════════════════════════════════ -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="14,10,14,28" Spacing="0">
+
+                <Label x:Name="DebugErrorLabel" Text="" FontSize="11"
+                       TextColor="#F85149" IsVisible="False"
+                       Padding="0,0,0,8" LineBreakMode="WordWrap"/>
+
+                <!-- Sem erros -->
+                <Label x:Name="NoErrorsLabel" IsVisible="False"
+                       Text="Partida bem jogada! Nenhum erro decisivo encontrado."
+                       FontSize="13" TextColor="#8B949E" Padding="4,16"/>
+
+                <!-- Navegação -->
+                <Grid x:Name="NavRow" IsVisible="False"
+                      ColumnDefinitions="40,*,40" Margin="0,0,0,10">
+
+                    <Border x:Name="PrevBtn"
+                            BackgroundColor="#161B22" Stroke="#30363D" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8" HeightRequest="36">
+                        <Label Text="‹" FontSize="22" TextColor="#7AAEE8"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPrevMoment"/>
+                        </Border.GestureRecognizers>
+                    </Border>
+
+                    <Label x:Name="MomentProgressLabel" Grid.Column="1"
+                           Text="" FontSize="12" TextColor="#6E7681"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+
+                    <Border x:Name="NextBtn" Grid.Column="2"
+                            BackgroundColor="#161B22" Stroke="#30363D" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8" HeightRequest="36">
+                        <Label Text="›" FontSize="22" TextColor="#7AAEE8"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNextMoment"/>
+                        </Border.GestureRecognizers>
+                    </Border>
+                </Grid>
+
+                <!-- Card do momento -->
+                <Border x:Name="MomentCard" IsVisible="False"
+                        BackgroundColor="#161B22" StrokeThickness="1" Stroke="#30363D"
+                        StrokeShape="RoundRectangle 12" Margin="0,0,0,12">
+                    <VerticalStackLayout Spacing="0">
+
+                        <!-- Cabeçalho: ícone + título -->
+                        <Grid ColumnDefinitions="Auto,*" Padding="14,12,14,10" ColumnSpacing="10">
+                            <Border x:Name="MomentIconBorder" Grid.Column="0"
+                                    BackgroundColor="#2A0D10" Stroke="#F85149"
+                                    StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                    WidthRequest="32" HeightRequest="32">
+                                <Label x:Name="MomentIconLabel" Text="✗"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="#F85149"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalTextAlignment="Center"/>
+                            </Border>
+                            <Label x:Name="MomentTitleLabel" Grid.Column="1"
+                                   Text="" FontSize="13" FontAttributes="Bold"
+                                   TextColor="#F85149" VerticalTextAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Separador -->
+                        <BoxView HeightRequest="1" BackgroundColor="#21262D"/>
+
+                        <!-- Análise -->
+                        <Label x:Name="MomentCommentLabel" Text=""
+                               FontSize="13" TextColor="#C9D1D9"
+                               LineBreakMode="WordWrap" LineHeight="1.2"
+                               Padding="14,8,14,10"/>
+
+                        <!-- Barra de acento inferior -->
+                        <BoxView x:Name="MomentAccentBar"
+                                 HeightRequest="3" BackgroundColor="#F85149"
+                                 HorizontalOptions="Fill" CornerRadius="0,0,12,12"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Card do resumo -->
+                <Border x:Name="LessonCard" IsVisible="False"
+                        BackgroundColor="#0D1F15" StrokeThickness="1" Stroke="#238636"
+                        StrokeShape="RoundRectangle 12" Margin="0,0,0,0">
+                    <VerticalStackLayout Spacing="0">
+
+                        <!-- Cabeçalho -->
+                        <Grid ColumnDefinitions="Auto,*" Padding="14,12,14,10" ColumnSpacing="10">
+                            <Border Grid.Column="0"
+                                    BackgroundColor="#0D2A15" Stroke="#238636"
+                                    StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                    WidthRequest="32" HeightRequest="32">
+                                <Label Text="▣" FontSize="14" TextColor="#3FB950"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalTextAlignment="Center"/>
+                            </Border>
+                            <Label Text="Resumo da partida" Grid.Column="1"
+                                   FontSize="13" FontAttributes="Bold"
+                                   TextColor="#3FB950" VerticalTextAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Separador -->
+                        <BoxView HeightRequest="1" BackgroundColor="#1A3020"/>
+
+                        <!-- Texto -->
+                        <Label x:Name="LessonLabel" FontSize="13" TextColor="#A8D5B5"
+                               LineBreakMode="WordWrap" LineHeight="1.2"
+                               Padding="14,8,14,10"/>
+
+                        <!-- Barra verde inferior -->
+                        <BoxView HeightRequest="3" BackgroundColor="#238636"
+                                 HorizontalOptions="Fill" CornerRadius="0,0,12,12"/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ══ LOADING ════════════════════════════════════════════════════════ -->
+        <Grid x:Name="LoadingOverlay" Grid.RowSpan="2"
+              BackgroundColor="#F00D1117" IsVisible="False">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
+                <ActivityIndicator IsRunning="True" Color="#4A90D9"
+                                   WidthRequest="48" HeightRequest="48"/>
+                <Label Text="Analisando partida..." FontSize="14"
+                       TextColor="#8B949E" HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+    </Grid>
+</ContentPage>

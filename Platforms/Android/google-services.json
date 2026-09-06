@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "961246167062",
+    "project_id": "chessarena-de2e1",
+    "storage_bucket": "chessarena-de2e1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:961246167062:android:c7874368e716d2ec7b3537",
+        "android_client_info": {
+          "package_name": "com.reinaldo.chessarena"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBafhbfm-UpsQPuhjK8m1yAS_tLWweETVQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

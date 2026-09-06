@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="ChessMAUI.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:ChessMAUI.Views"
+    Title="Xadrez"
+    Shell.BackgroundColor="#0A1020"
+    Shell.ForegroundColor="White"
+    Shell.TitleColor="White"
+    Shell.DisabledColor="#AAAACC"
+    Shell.TabBarBackgroundColor="#080E1A"
+    Shell.TabBarForegroundColor="#00E5FF"
+    Shell.TabBarTitleColor="#00E5FF"
+    Shell.TabBarUnselectedColor="#8A9EBE">
+
+    <TabBar>
+        <Tab Title="Início" Icon="chatgpt_home_neon.png">
+            <ShellContent Route="LobbyPage"
+                          ContentTemplate="{DataTemplate views:LobbyPage}"
+                          Shell.NavBarIsVisible="False"
+                          Shell.TabBarIsVisible="True"/>
+        </Tab>
+        <Tab Title="Ranking" Icon="chatgpt_trophy_neon.png">
+            <ShellContent Route="RankingPage"
+                          ContentTemplate="{DataTemplate views:RankingPage}"
+                          Shell.NavBarIsVisible="False"
+                          Shell.TabBarIsVisible="True"/>
+        </Tab>
+        <Tab Title="Perfil" Icon="chatgpt_user_neon.png">
+            <ShellContent Route="ProfilePage"
+                          ContentTemplate="{DataTemplate views:ProfilePage}"
+                          Shell.NavBarIsVisible="False"
+                          Shell.TabBarIsVisible="True"/>
+        </Tab>
+    </TabBar>
+
+</Shell>
