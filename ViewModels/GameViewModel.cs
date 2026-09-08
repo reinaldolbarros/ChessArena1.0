@@ -184,7 +184,7 @@ public class GameViewModel : INotifyPropertyChanged
     public bool GameOver
     {
         get => _gameOver;
-        private set { _gameOver = value; OnPC(); OnPC(nameof(ShowReturnButton)); OnPC(nameof(ShowMoveTimer)); OnPC(nameof(ShowResignButton)); OnPC(nameof(CanOfferDraw)); OfferDrawCommand?.ChangeCanExecute(); }
+        private set { _gameOver = value; OnPC(); OnPC(nameof(ShowMoveTimer)); OnPC(nameof(ShowResignButton)); OnPC(nameof(CanOfferDraw)); OfferDrawCommand?.ChangeCanExecute(); }
     }
 
     public bool IsAIThinking
@@ -214,8 +214,7 @@ public class GameViewModel : INotifyPropertyChanged
     // Modo torneio
     public bool   IsTournamentMode    { get; private set; }
     public string TournamentOpponent  { get; private set; } = "";
-    public bool   ShowNewGameButton   => !IsTournamentMode && !IsPuzzleMode;
-    public bool   ShowReturnButton    => IsTournamentMode && _gameOver;
+    public bool   ShowNewGameButton   => !IsTournamentMode;
     public bool?  HumanWon            { get; private set; }
 
     // Modo amigo (pass-and-play)
@@ -225,19 +224,6 @@ public class GameViewModel : INotifyPropertyChanged
     public event Action<string>? RequestHandoff;
 
     public int MoveCount => _allMoveSnapshots.Count;
-
-    // Modo puzzle
-    public bool   IsPuzzleMode       { get; private set; }
-    public string PuzzleCategory     { get; private set; } = "";
-    public string PuzzleDescription  { get; private set; } = "";
-    public int    PuzzleDifficulty   { get; private set; }
-    public int    PuzzleMovesDone    { get; private set; }
-    public int    PuzzleMovesTotal   { get; private set; }
-    public bool   PuzzleSolvedResult { get; private set; }
-    public event Action<bool>? PuzzleFinished;   // true=resolvido, false=falhou
-
-    private string[]?   _puzzleSolution;
-    private ChessBoard? _puzzleInitialBoard;
 
     // Som
     public bool SoundEnabled
@@ -254,8 +240,8 @@ public class GameViewModel : INotifyPropertyChanged
     public ICommand ResignCommand       { get; }
     public Command  OfferDrawCommand    { get; }
 
-    public bool ShowResignButton => !_gameOver && !IsFriendMode && !IsPuzzleMode;
-    public bool CanOfferDraw    => !IsFriendMode && !IsPuzzleMode && !_gameOver && !_isAIThinking && !_drawRefusedThisTurn;
+    public bool ShowResignButton => !_gameOver && !IsFriendMode;
+    public bool CanOfferDraw    => !IsFriendMode && !_gameOver && !_isAIThinking && !_drawRefusedThisTurn;
 
     // Peças capturadas e vantagem de material
     public string WhiteCapturesDisplay { get; private set; } = "";
@@ -299,10 +285,10 @@ public class GameViewModel : INotifyPropertyChanged
     // ----------------------------------------------------------------
     // Modo torneio — chamado pela GamePage quando IsInTournamentMatch
     // ----------------------------------------------------------------
-    public void StartTournamentGame(string opponentName, int minutes, int aiDepth)
+    public void StartTournamentGame(string opponentName, int minutes, int aiDepth, int? skillLevel = null)
     {
         TournamentOpponent = opponentName;
-        StartNewGame(minutes, aiDepth, isTournament: true);
+        StartNewGame(minutes, aiDepth, isTournament: true, skillLevel: skillLevel);
     }
 
     public void StartFriendGame(string white, string black, int minutes)
@@ -310,74 +296,6 @@ public class GameViewModel : INotifyPropertyChanged
         WhitePlayerName = white;
         BlackPlayerName = black;
         StartNewGame(minutes, aiDepth: 1, isTournament: false, friendMode: true);
-    }
-
-    public void StartPuzzle(Puzzle puzzle)
-    {
-        _aiCts?.Cancel();
-        _aiCts = null;
-
-        _board            = new ChessBoard();
-        _board.LoadFen(puzzle.Fen);
-        _puzzleInitialBoard = _board.Clone();
-
-        _selectedSquare   = null;
-        _lastMove         = null;
-        _pendingPromotion = null;
-        _validMoves.Clear();
-        _capturedByWhite.Clear();
-        _capturedByBlack.Clear();
-        _moves.Clear();
-        UpdateCapturesDisplay();
-        UpdateMoveList();
-        AwaitingPromotion    = false;
-        IsAIThinking         = false;
-        _drawRefusedThisTurn = false;
-        GameOver             = false;
-        HumanWon             = null;
-
-        IsTournamentMode     = false;
-        IsFriendMode         = false;
-        IsPuzzleMode         = true;
-        PuzzleCategory       = puzzle.Category;
-        PuzzleDescription    = puzzle.Description;
-        PuzzleDifficulty     = puzzle.Difficulty;
-        PuzzleMovesDone      = 0;
-        PuzzleMovesTotal     = puzzle.Solution.Length;
-        PuzzleSolvedResult   = false;
-        _puzzleSolution      = puzzle.Solution;
-
-        OnPC(nameof(IsPuzzleMode));
-        OnPC(nameof(PuzzleCategory));
-        OnPC(nameof(PuzzleDescription));
-        OnPC(nameof(PuzzleDifficulty));
-        OnPC(nameof(PuzzleMovesDone));
-        OnPC(nameof(PuzzleMovesTotal));
-        OnPC(nameof(ShowNewGameButton));
-        OnPC(nameof(ShowReturnButton));
-        OnPC(nameof(ShowResignButton));
-        OnPC(nameof(CanOfferDraw));
-        OfferDrawCommand.ChangeCanExecute();
-
-        _timerEnabled    = false;
-        _moveTimerActive = false;
-        NotifyTimerProperties();
-        OnPC(nameof(ShowMoveTimer));
-
-        StopClock();
-        ClearHighlights();
-        RefreshBoard();
-
-        // If black is to move first in the puzzle, it means the "opponent" plays first
-        // and the player is black — handle that case by making opponent's first move
-        if (puzzle.PlayerColor == PieceColor.White)
-            StatusMessage = $"Puzzle · {puzzle.Category}  —  Brancas jogam";
-        else
-            StatusMessage = $"Puzzle · {puzzle.Category}  —  Pretas jogam";
-
-        // If the board turn doesn't match player color, opponent moves first
-        if (_board.CurrentTurn != puzzle.PlayerColor)
-            _ = PlayPuzzleOpponentAsync();
     }
 
     private static ChessMove? UciToMove(ChessBoard board, string uci)
@@ -425,164 +343,10 @@ public class GameViewModel : INotifyPropertyChanged
         return sb.ToString();
     }
 
-    private async Task PlayPuzzleOpponentAsync()
-    {
-        if (_puzzleSolution == null || PuzzleMovesDone >= _puzzleSolution.Length) return;
-
-        IsAIThinking = true;
-        await Task.Delay(600);
-        IsAIThinking = false;
-
-        if (_gameOver) return;
-
-        string uci  = _puzzleSolution[PuzzleMovesDone];
-        var move    = UciToMove(_board, uci);
-        if (move == null) return;
-
-        var piece     = _board.GetPiece(move.FromRow, move.FromCol)!;
-        var captured  = _board.GetPiece(move.ToRow, move.ToCol);
-        _lastMove = move;
-
-        ChessEngine.ApplyMove(_board, move);
-        RefreshBoard();
-
-        var state = ChessEngine.GetGameState(_board);
-        PlaySound(captured != null, state);
-
-        if (captured != null) { _capturedByBlack.Add(captured); UpdateCapturesDisplay(); }
-        _moves.Add(GetNotation(move, piece, captured != null, state));
-        UpdateMoveList();
-
-        PuzzleMovesDone++;
-        OnPC(nameof(PuzzleMovesDone));
-
-        StatusMessage = $"Puzzle · {PuzzleCategory}  —  Sua vez";
-    }
-
-    private void ExecutePuzzleMove(ChessMove move)
-    {
-        if (_puzzleSolution == null) return;
-
-        // Build expected UCI
-        string expected = _puzzleSolution[PuzzleMovesDone];
-        string actual   = $"{(char)('a' + move.FromCol)}{8 - move.FromRow}{(char)('a' + move.ToCol)}{8 - move.ToRow}";
-        if (move.PromotionPiece.HasValue)
-            actual += move.PromotionPiece.Value switch
-            {
-                PieceType.Queen  => "q", PieceType.Rook   => "r",
-                PieceType.Bishop => "b", _                 => "n"
-            };
-
-        if (!actual.StartsWith(expected[..Math.Min(4, expected.Length)]) &&
-            actual != expected)
-        {
-            // Wrong move — mark as failed immediately
-            StatusMessage = "✗ Movimento incorreto!";
-            _sound.PlayGameOver();
-            GameOver = true;
-            PuzzleFinished?.Invoke(false);
-            return;
-        }
-
-        // Correct
-        var piece     = _board.GetPiece(move.FromRow, move.FromCol)!;
-        var captured  = move.IsEnPassant
-            ? new ChessPiece(PieceType.Pawn, piece.Color == PieceColor.White ? PieceColor.Black : PieceColor.White)
-            : _board.GetPiece(move.ToRow, move.ToCol);
-        _lastMove = move;
-
-        ClearHighlights();
-        _selectedSquare = null;
-        _validMoves.Clear();
-
-        ChessEngine.ApplyMove(_board, move);
-        RefreshBoard();
-
-        var state = ChessEngine.GetGameState(_board);
-        PlaySound(captured != null, state);
-
-        if (captured != null) { _capturedByWhite.Add(captured); UpdateCapturesDisplay(); }
-        _moves.Add(GetNotation(move, piece, captured != null, state));
-        UpdateMoveList();
-
-        PuzzleMovesDone++;
-        OnPC(nameof(PuzzleMovesDone));
-
-        if (PuzzleMovesDone >= _puzzleSolution.Length)
-        {
-            // Puzzle complete!
-            PuzzleSolvedResult = true;
-            OnPC(nameof(PuzzleSolvedResult));
-            StopClock();
-            StatusMessage = "✓ Puzzle resolvido!";
-            GameOver = true;
-            PuzzleFinished?.Invoke(true);
-        }
-        else
-        {
-            // Let opponent play their next move
-            StatusMessage = $"✓ Bom! Aguarde...";
-            _ = PlayPuzzleOpponentAsync();
-        }
-    }
-
-    // Aplica todos os lances da solução de uma vez (síncrono, main thread).
-    // A View exibe o tabuleiro resultante e aguarda um toque do usuário para continuar.
-    public void ApplySolutionNow()
-    {
-        if (_puzzleSolution == null || _puzzleInitialBoard == null) return;
-
-        _board = _puzzleInitialBoard.Clone();
-        _lastMove       = null;
-        _selectedSquare = null;
-        _validMoves.Clear();
-        _capturedByWhite.Clear();
-        _capturedByBlack.Clear();
-        _moves.Clear();
-
-        foreach (var uci in _puzzleSolution)
-        {
-            var move = UciToMove(_board, uci);
-            if (move == null) break;
-
-            var piece    = _board.GetPiece(move.FromRow, move.FromCol)!;
-            var captured = move.IsEnPassant
-                ? new ChessPiece(PieceType.Pawn, piece.Color == PieceColor.White ? PieceColor.Black : PieceColor.White)
-                : _board.GetPiece(move.ToRow, move.ToCol);
-
-            _lastMove = move;
-            ClearHighlights();
-            ChessEngine.ApplyMove(_board, move);
-
-            if (captured != null)
-            {
-                if (piece.Color == PieceColor.White) _capturedByWhite.Add(captured);
-                else                                  _capturedByBlack.Add(captured);
-            }
-            _moves.Add(GetNotation(move, piece, captured != null, ChessEngine.GetGameState(_board)));
-            PuzzleMovesDone++;
-        }
-
-        OnPC(nameof(PuzzleMovesDone));
-        UpdateCapturesDisplay();
-        UpdateMoveList();
-        RefreshBoard();
-        StatusMessage = $"Solução · {PuzzleCategory}";
-    }
-
-    // Chamado quando o jogador desiste do puzzle sem tentar (ou erra e quer ver a solução).
-    public void GiveUpPuzzle()
-    {
-        if (GameOver) return; // já encerrado (ex: errou), não dispara de novo
-        StopClock();
-        GameOver = true;
-        PuzzleFinished?.Invoke(false);
-    }
-
     // ----------------------------------------------------------------
     // Novo jogo — chamado pela GamePage após o usuário escolher tempo e dificuldade
     // ----------------------------------------------------------------
-    public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false)
+    public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false, int? skillLevel = null)
     {
         _aiCts?.Cancel();
         _aiCts = null;
@@ -608,10 +372,13 @@ public class GameViewModel : INotifyPropertyChanged
         _allMoveSnapshots.Clear();
         _uciMoveHistory.Clear();
         _aiDepthLevel = aiDepth;
-        // Skill Level sempre no máximo: a IA nunca ignora tática forçada nem mate por "burrice"
-        // artificial. A dificuldade varia só pelo tempo de busca (profundidade posicional) —
-        // ver ApplyStockfishMoveAsync para a exceção controlada do Fácil (raro lance de peão solto).
-        _sfSkillLevel = 20;
+        // Skill Level sempre no máximo por padrão: a IA nunca ignora tática forçada nem mate
+        // por "burrice" artificial. A dificuldade varia só pelo tempo de busca (profundidade
+        // posicional) — ver ApplyStockfishMoveAsync para a exceção controlada do Fácil (raro
+        // lance de peão solto). Exceção: Modo Carreira passa um skillLevel específico por fase
+        // da pirâmide (ver CareerService.GetSkillLevel), pra ter uma curva real de dificuldade
+        // entre o Torneio Local e o Campeonato Mundial.
+        _sfSkillLevel = skillLevel ?? 20;
         // Com Skill Level sempre no máximo + hash/threads adequados, o Stockfish já joga muito
         // forte em buscas curtas — não precisa de vários segundos pra ser um adversário sério.
         _sfMoveTimeMs = aiDepth switch { 1 => 1000, 3 => 1500, _ => 2000 };
@@ -624,14 +391,10 @@ public class GameViewModel : INotifyPropertyChanged
         HumanWon          = null;
         IsTournamentMode  = isTournament;
         IsFriendMode      = friendMode;
-        IsPuzzleMode      = false;
-        _puzzleSolution   = null;
-        _puzzleInitialBoard = null;
         if (!friendMode) { WhitePlayerName = "Você"; BlackPlayerName = "IA"; }
         OnPC(nameof(IsTournamentMode));
         OnPC(nameof(TournamentOpponent));
         OnPC(nameof(ShowNewGameButton));
-        OnPC(nameof(ShowReturnButton));
         OnPC(nameof(CanOfferDraw));
         OfferDrawCommand.ChangeCanExecute();
 
@@ -792,7 +555,7 @@ public class GameViewModel : INotifyPropertyChanged
         if (_gameOver || _awaitingPromotion) return;
 
         var humanColor = IsFriendMode ? _board.CurrentTurn : PieceColor.White;
-        bool isMyTurn  = IsFriendMode || IsPuzzleMode || _board.CurrentTurn == PieceColor.White;
+        bool isMyTurn  = IsFriendMode || _board.CurrentTurn == PieceColor.White;
         var piece      = _board.GetPiece(tapped.Row, tapped.Col);
 
         if (_selectedSquare != null)
@@ -810,8 +573,7 @@ public class GameViewModel : INotifyPropertyChanged
                         PromotionRequested?.Invoke(humanColor == PieceColor.White ? "white" : "black");
                         return;
                     }
-                    if (IsPuzzleMode) ExecutePuzzleMove(move);
-                    else              ExecutePlayerMove(move);
+                    ExecutePlayerMove(move);
                     return;
                 }
             }
@@ -884,7 +646,7 @@ public class GameViewModel : INotifyPropertyChanged
         _moves.Add(notation);
         UpdateMoveList();
 
-        if (!IsFriendMode && !IsPuzzleMode)
+        if (!IsFriendMode)
         {
             _uciMoveHistory.Add(MoveToUci(move));
             _playerMoveSnapshots.Add(new(snapshotBeforeMove, move, _moves.Count - 1));

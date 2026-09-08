@@ -67,21 +67,11 @@ public class AppState
     public string CareerOpponentName { get; set; } = "";
     public int    CareerAIDepth      { get; set; } = 1;
     public int    CareerTimeMinutes  { get; set; } = 10;
+    public int    CareerSkillLevel   { get; set; } = 20;
     public bool   LastMatchWasDraw   { get; set; }
 
     // Revisão de partida
     public Models.GameReviewData? PendingReviewData { get; set; }
-
-    // Puzzle do Dia
-    public PuzzleService PuzzleSvc     { get; } = CreatePuzzleService();
-    public bool          PendingPuzzle { get; set; }
-
-    private static PuzzleService CreatePuzzleService()
-    {
-        var svc = new PuzzleService();
-        svc.BeginBackgroundGeneration();
-        return svc;
-    }
 
     // Jogo aleatório online
     public OnlineMatchService OnlineMatch       { get; } = new();

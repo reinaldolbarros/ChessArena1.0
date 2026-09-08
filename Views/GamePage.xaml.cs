@@ -16,8 +16,11 @@ public partial class GamePage : ContentPage
 
     private int _selectedDiff = 0;
     private int _selectedTimeMinutes = 0;
-    private static readonly int[]    DiffDepths  = [1, 3, 5];
-    private static readonly string[] DiffLabels  = ["Fácil", "Médio", "Difícil"];
+    // Tempo de raciocínio (não representa mais dificuldade sozinho — ver Skill Level
+    // abaixo). Difícil e Hard usam o mesmo tempo; o que diferencia os dois é a força
+    // real da IA via CareerService.GetSkillLevel.
+    private static readonly int[]    DiffDepths  = [1, 3, 5, 5];
+    private static readonly string[] DiffLabels  = ["Fácil", "Médio", "Difícil", "Hard"];
 
     public GamePage()
     {
@@ -32,7 +35,6 @@ public partial class GamePage : ContentPage
         _vm.DrawOfferRequested  += OnDrawOfferRequested;
         _vm.PropertyChanged     += OnVmPropertyChanged;
         _vm.RequestHandoff      += ShowHandoffOverlay;
-        _vm.PuzzleFinished += OnPuzzleFinished;
 
         _selectedDiff        = Preferences.Default.Get("AiDifficulty", 0);
         _selectedTimeMinutes = Preferences.Default.Get("GameTimeMinutes", 0);
@@ -40,7 +42,7 @@ public partial class GamePage : ContentPage
         BoardThemeService.ThemeChanged += OnThemeChanged;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         AdminBar.IsVisible = AppState.Current.IsAdminMode;
@@ -61,7 +63,8 @@ public partial class GamePage : ContentPage
             _vm.StartTournamentGame(
                 state.CareerOpponentName,
                 state.CareerTimeMinutes,
-                state.CareerAIDepth);
+                state.CareerAIDepth,
+                state.CareerSkillLevel);
         }
         else if (state.PendingTournamentGame)
         {
@@ -111,21 +114,7 @@ public partial class GamePage : ContentPage
             HandoffPanel.IsVisible = false;
             _drawable.IsFlipped    = false;
         }
-        else if (state.PendingPuzzle)
-        {
-            state.PendingPuzzle  = false;
-            SetupPanel.IsVisible = false;
-            ResultPanel.IsVisible = false;
-            var puzzle = state.PuzzleSvc.GetCurrentPuzzle();
-            Title = "Puzzle do Dia";
-            PuzzleBanner.IsVisible = true;
-            GiveUpBtn.IsVisible    = true;
-            PuzzleCategoryLabel.Text  = $"🧩 {puzzle.Category}";
-            PuzzleDescLabel.Text      = puzzle.Description;
-            PuzzleProgressLabel.Text  = $"0 / {puzzle.Solution.Length}";
-            _vm.StartPuzzle(puzzle);
-        }
-        else if (!_vm.IsTournamentMode && !_vm.IsFriendMode && !_vm.IsPuzzleMode && _vm.GameOver)
+        else if (!_vm.IsTournamentMode && !_vm.IsFriendMode && _vm.GameOver)
         {
             ResultPanel.IsVisible = false;
             SetupPanel.IsVisible  = true;
@@ -171,13 +160,13 @@ public partial class GamePage : ContentPage
 
         if (state.IsCareerGame)
         {
+            // O rating/Elo do perfil não é alterado pelo Modo Carreira — a progressão de
+            // carreira já tem seu próprio placar (pontos Suíço, fases, título), e os
+            // adversários de carreira são IA em níveis controlados, não uma amostra justa
+            // pra calibrar o rating "de verdade" (que reflete jogos contra outros usuários).
             state.LastMatchHumanWon = humanWon;
             state.LastMatchWasDraw  = isDraw;
             state.MatchResultReady  = true;
-            int oppElo = ProfileService.EloRatingForAI(state.CareerAIDepth);
-            eloDelta   = state.Profile.UpdateElo(oppElo, humanWon, isDraw);
-            if (humanWon)     { state.Profile.RecordWin(); starsEarned += state.Daily.RecordWin(); }
-            else if (!isDraw)   state.Profile.RecordLoss();
         }
         else if (state.IsOnlineGame)
         {
@@ -226,7 +215,7 @@ public partial class GamePage : ContentPage
             ResultTitle.Text  = humanWon ? "Vitória!" : isDraw ? "Empate" : "Derrota";
             ResultDetail.Text = _vm.StatusMessage;
 
-            if (state.IsCareerGame || state.IsOnlineGame)
+            if (state.IsOnlineGame)
             {
                 int oldPoints = state.Profile.Points - eloDelta;
                 string eloSign2 = eloDelta >= 0 ? "+" : "";
@@ -278,16 +267,8 @@ public partial class GamePage : ContentPage
     // -----------------------------------------------------------------------
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(_vm.PuzzleMovesDone) && _vm.IsPuzzleMode)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-                PuzzleProgressLabel.Text = $"{_vm.PuzzleMovesDone} / {_vm.PuzzleMovesTotal}");
-            return;
-        }
-
         if (e.PropertyName != nameof(_vm.GameOver) || !_vm.GameOver) return;
         if (_vm.IsTournamentMode) return;
-        if (_vm.IsPuzzleMode) return; // puzzle handled by PuzzleFinished event
 
         if (_vm.IsFriendMode)
         {
@@ -527,185 +508,6 @@ public partial class GamePage : ContentPage
     }
 
     // -----------------------------------------------------------------------
-    // Puzzle do Dia — resultado
-    // -----------------------------------------------------------------------
-    private void OnPuzzleFinished(bool solved)
-    {
-        var state = AppState.Current;
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (solved)
-            {
-                state.PuzzleSvc.IncrementDailyCount();
-                int stars = 2 + (_vm.PuzzleDifficulty - 1); // 2/3/4 estrelas por dificuldade
-                state.Stars.Add(stars);
-                int starsBonus = state.Daily.RecordWin();
-                if (starsBonus > 0) state.Stars.Add(starsBonus);
-
-                string diff = _vm.PuzzleDifficulty switch { 3 => "Difícil ★★★", 2 => "Médio ★★", _ => "Fácil ★" };
-                bool   isSub = state.Subscription.IsActive;
-                int    done  = state.PuzzleSvc.GetDailyCount();
-                int    left  = PuzzleService.FreeLimit - done;
-                string next  = isSub
-                    ? "Próximo desafio disponível!"
-                    : left > 0
-                        ? $"+{left} puzzle{(left > 1 ? "s" : "")} grátis restante{(left > 1 ? "s" : "")} hoje"
-                        : "Limite diário atingido — volte amanhã!";
-
-                ResultTopBar.BackgroundColor = Color.FromArgb("#4CAF50");
-                ResultIcon.Text      = "✓";
-                ResultIcon.TextColor = Color.FromArgb("#4CAF50");
-                ResultTitle.Text      = "Resolvido!";
-                ResultTitle.TextColor = Color.FromArgb("#4CAF50");
-                ResultDetail.Text     = $"{_vm.PuzzleCategory}  ·  {diff}\n\n+{stars} ⭐\n{next}";
-                ResultRatingRow.IsVisible = false;
-
-                bool canPlayMore = state.PuzzleSvc.CanPlayMore(isSub);
-                ResultActionBtn.Text            = canPlayMore ? "▶ Próximo Puzzle" : "← Voltar à Arena";
-                ResultActionBtn.BackgroundColor = Color.FromArgb("#769656");
-                ResultSolutionBtn.IsVisible     = false;
-                ResultSecondaryLabel.IsVisible  = canPlayMore;
-                ResultSecondaryLabel.Text       = "← Voltar à Arena";
-            }
-            else
-            {
-                // Falhou — não incrementa contagem ainda, não dá estrelas
-                string diff = _vm.PuzzleDifficulty switch { 3 => "Difícil ★★★", 2 => "Médio ★★", _ => "Fácil ★" };
-
-                ResultTopBar.BackgroundColor = Color.FromArgb("#FF5252");
-                ResultIcon.Text      = "✗";
-                ResultIcon.TextColor = Color.FromArgb("#FF5252");
-                ResultTitle.Text      = "Falhou!";
-                ResultTitle.TextColor = Color.FromArgb("#FF5252");
-                ResultDetail.Text     = $"{_vm.PuzzleCategory}  ·  {diff}\n\nEsse foi o movimento correto — estude a posição!";
-                ResultRatingRow.IsVisible = false;
-
-                ResultActionBtn.Text            = "→ Próximo desafio";
-                ResultActionBtn.BackgroundColor = Color.FromArgb("#1A4A1A");
-                ResultSolutionBtn.IsVisible     = true;
-                ResultSecondaryLabel.IsVisible  = false;
-            }
-
-            ResultSetupBtn.IsVisible = false;
-            PuzzleBanner.IsVisible   = false;
-            ResultPanel.IsVisible    = true;
-        });
-    }
-
-    // Chamado pelo botão "Ver solução" no painel de resultado (após erro)
-    private void OnViewSolutionClicked(object? sender, EventArgs e)
-    {
-        ResultPanel.IsVisible  = false;
-        PuzzleBanner.IsVisible = true;
-        GiveUpBtn.IsVisible    = false;
-        _vm.ApplySolutionNow();
-
-        SolutionCategoryLabel.Text     = $"🧩 {_vm.PuzzleCategory}";
-        SolutionHintLabel.Text         = _vm.PuzzleDescription;
-        SolutionExplanationLabel.Text  = GetSolutionExplanation(_vm.PuzzleCategory);
-
-        SolutionBar.IsVisible = true;
-    }
-
-    private static string GetSolutionExplanation(string category) => category switch
-    {
-        "Xeque-mate" =>
-            "A posição final é xeque-mate: o rei adversário está em xeque e não tem nenhuma casa válida para fugir. " +
-            "Este é o objetivo final do xadrez — o rei não pode ser capturado nem escapar!",
-
-        "Garfo" =>
-            "O lance cria um garfo — uma única peça ataca dois alvos ao mesmo tempo. " +
-            "O adversário só consegue salvar um deles e perde o outro sem compensação.",
-
-        "Forca" =>
-            "O lance prende uma peça adversária que não pode se mover sem sofrer perdas ainda maiores. " +
-            "A peça está imobilizada e será capturada ou forçará outras perdas.",
-
-        "Promoção" =>
-            "O peão avançou até a última fileira e foi promovido a uma peça muito mais poderosa. " +
-            "Criar um peão passado e garantir sua promoção é frequentemente decisivo no final de jogo.",
-
-        "Defesa" =>
-            "Este lance neutraliza a ameaça imediata do adversário, protegendo o rei ou salvando uma peça em perigo. " +
-            "Reconhecer ataques e defender corretamente é tão importante quanto atacar.",
-
-        "Rei Ativo" =>
-            "No final do jogo, o rei deixa de ser vulnerável e se torna uma peça ativa e decisiva. " +
-            "Centralizar o rei e aproximá-lo do adversário é uma técnica fundamental de finais.",
-
-        "Espeto" =>
-            "O espeto ataca uma peça valiosa que, ao se mover para escapar, expõe uma peça ainda mais valiosa atrás dela. " +
-            "É o oposto da forca: a peça atacada precisa se mover e revela o alvo real.",
-
-        "Ataque Descoberto" =>
-            "Ao mover uma peça, você descobre o ataque de outra peça que estava bloqueada atrás dela. " +
-            "O adversário precisa lidar com dois ataques ao mesmo tempo — o da peça que se moveu e o ataque descoberto.",
-
-        "Duplo Xeque" =>
-            "Duas peças dão xeque ao rei ao mesmo tempo. O único recurso é mover o rei — não é possível bloquear ou capturar ambas as peças que atacam.",
-
-        "Sacrifício" =>
-            "Você entregou material deliberadamente para obter uma compensação ainda maior — posição dominante, ataque decisivo ou mate forçado. " +
-            "Sacrifícios são a forma mais espetacular de tática no xadrez.",
-
-        "Captura Simples" =>
-            "Uma peça adversária estava desprotegida (en prise). Capturá-la não tem custo algum — é um ganho de material gratuito.",
-
-        "Desvio" =>
-            "O lance força a peça adversária a abandonar sua função defensiva crucial. " +
-            "Ao desviá-la, você abre caminho para um ataque que ela estava impedindo.",
-
-        "Atração" =>
-            "A manobra atrai o rei ou uma peça adversária para uma casa desfavorável onde ela ficará vulnerável ou presa. " +
-            "Geralmente é executada com um sacrifício que o adversário é obrigado a aceitar.",
-
-        "Final" =>
-            "Os finais exigem técnica precisa: cada lance conta e erros custam muito caro. " +
-            "Com poucas peças no tabuleiro, a atividade dos reis, o avanço de peões passados e a coordenação das peças restantes são decisivos.",
-
-        "Tática" =>
-            "Este puzzle envolve uma combinação tática que cria vantagem material ou posicional decisiva. " +
-            "Observe os ataques, ameaças e fraquezas da posição adversária.",
-
-        _ =>
-            "Observe a posição com atenção: onde as peças estão, quais estão sob ataque e quais casas estão disponíveis. " +
-            "A jogada correta tira vantagem de um desequilíbrio tático que o adversário não consegue neutralizar."
-    };
-
-    // Chamado pelo botão "Ver solução" no banner do puzzle (desistir sem tentar)
-    private void OnGiveUpPuzzleClicked(object? sender, EventArgs e)
-    {
-        GiveUpBtn.IsVisible = false;
-        _vm.GiveUpPuzzle();   // dispara PuzzleFinished(false) → OnPuzzleFinished
-    }
-
-    private void OnSolutionContinueClicked(object? sender, EventArgs e)
-    {
-        SolutionBar.IsVisible = false;
-
-        var state = AppState.Current;
-        state.PuzzleSvc.IncrementDailyCount();
-        bool isSub       = state.Subscription.IsActive;
-        bool canPlayMore = state.PuzzleSvc.CanPlayMore(isSub);
-
-        ResultTopBar.BackgroundColor    = Color.FromArgb("#5A8AB0");
-        ResultIcon.Text                 = "📖";
-        ResultIcon.TextColor            = Color.FromArgb("#5A8AB0");
-        ResultTitle.Text                = "Solução Exibida";
-        ResultTitle.TextColor           = Color.FromArgb("#5A8AB0");
-        ResultDetail.Text               = "Estude os lances e tente o próximo!";
-        ResultRatingRow.IsVisible       = false;
-        ResultSetupBtn.IsVisible        = false;
-        ResultActionBtn.Text            = canPlayMore ? "→ Próximo desafio" : "← Voltar à Arena";
-        ResultActionBtn.BackgroundColor = Color.FromArgb("#1A3A5A");
-        ResultSolutionBtn.IsVisible     = false;
-        ResultSecondaryLabel.IsVisible  = false;
-        PuzzleBanner.IsVisible          = false;
-        ResultPanel.IsVisible           = true;
-    }
-
-    // -----------------------------------------------------------------------
     // Chat do bot — exibe balão e some após 3 s
     // -----------------------------------------------------------------------
     private void OnChatMessageReceived(string message)
@@ -808,9 +610,6 @@ public partial class GamePage : ContentPage
     {
         AppState.Current.IsOnlineGame   = false;
         ResultPanel.IsVisible           = false;
-        PuzzleBanner.IsVisible          = false;
-        SolutionBar.IsVisible           = false;
-        ResultSolutionBtn.IsVisible     = false;
         ResultSetupBtn.IsVisible        = false;
         NewOnlineBtn.IsVisible          = false;
         await Shell.Current.GoToAsync("..");
@@ -876,58 +675,33 @@ public partial class GamePage : ContentPage
         SelectDiff(2);
     }
 
+    private void OnDiffHardcoreTapped(object? sender, TappedEventArgs e)
+    {
+        OnDiffOverlayDismiss(sender, e);
+        SelectDiff(3);
+    }
+
     private void OnSetupNewGameClicked(object? sender = null, EventArgs? e = null)
     {
         ResultPanel.IsVisible          = false;
         SetupPanel.IsVisible           = false;
-        PuzzleBanner.IsVisible         = false;
-        SolutionBar.IsVisible          = false;
-        ResultSolutionBtn.IsVisible    = false;
         ResultSetupBtn.IsVisible       = false;
         ResultActionBtn.HeightRequest  = 48;
         WhitePlayerLabel.Text         = "♙ Você (Brancas)";
         BlackPlayerLabel.Text         = "♟ IA (Pretas)";
         Title                         = "ChessArena";
         AppState.Current.IsCareerGame = false;
-        _vm.StartNewGame(_selectedTimeMinutes, DiffDepths[_selectedDiff]);
+        // Skill Level real por dificuldade (mesma escala 1-4 do Modo Carreira: Fácil=3,
+        // Médio=10, Difícil=16, Hard=20) — antes a IA sempre jogava em força máxima (20)
+        // no modo casual, só variando o tempo de raciocínio, o que fazia até o "Fácil"
+        // continuar difícil de vencer de verdade.
+        int skillLevel = CareerService.GetSkillLevel(_selectedDiff + 1);
+        _vm.StartNewGame(_selectedTimeMinutes, DiffDepths[_selectedDiff], skillLevel: skillLevel);
     }
 
     private async void OnResultActionClicked(object? sender, EventArgs e)
     {
         var state = AppState.Current;
-
-        // Próximo desafio (modo puzzle — solved, failed ou solução exibida)
-        if (_vm.IsPuzzleMode)
-        {
-            // Se o puzzle falhou e o usuário não viu a solução, incrementa agora
-            if (!_vm.PuzzleSolvedResult && ResultSolutionBtn.IsVisible == false &&
-                ResultActionBtn.Text.Contains("Próximo"))
-            {
-                state.PuzzleSvc.IncrementDailyCount();
-            }
-
-            bool isSub = state.Subscription.IsActive;
-            if (state.PuzzleSvc.CanPlayMore(isSub))
-            {
-                ResultPanel.IsVisible = false;
-                SolutionBar.IsVisible = false;
-                var nextPuzzle = state.PuzzleSvc.GetCurrentPuzzle();
-                Title = "Puzzle do Dia";
-                PuzzleBanner.IsVisible    = true;
-                GiveUpBtn.IsVisible       = true;
-                PuzzleCategoryLabel.Text  = $"🧩 {nextPuzzle.Category}";
-                PuzzleDescLabel.Text      = nextPuzzle.Description;
-                PuzzleProgressLabel.Text  = $"0 / {nextPuzzle.Solution.Length}";
-                _vm.StartPuzzle(nextPuzzle);
-            }
-            else
-            {
-                PuzzleBanner.IsVisible = false;
-                ResultPanel.IsVisible  = false;
-                await Shell.Current.GoToAsync("..");
-            }
-            return;
-        }
 
         if (state.IsCareerGame)
         {
@@ -944,17 +718,40 @@ public partial class GamePage : ContentPage
 
             if (!hasNext || opp == null)
             {
+                // Torneio encerrado — sem próxima rodada. Sem isso, IsCareerGame ficava preso
+                // em "true", e uma partida Online jogada logo em seguida (sem passar por
+                // "Nova Partida") acabava sendo processada por engano como rodada de Carreira.
+                state.IsCareerGame    = false;
                 ResultPanel.IsVisible = false;
                 await Shell.Current.GoToAsync("..");
                 return;
             }
 
             state.CareerOpponentName = opp.Name;
-            state.CareerAIDepth      = CareerService.GetAIDepth(opp.Difficulty);
-            state.CareerTimeMinutes  = CareerService.GetTimeMinutes(opp.Difficulty);
-
+            state.CareerAIDepth      = 3; // tempo de raciocínio fixo — não representa mais dificuldade
+            // CareerTimeMinutes não muda entre rodadas — é o tempo que o jogador escolheu
+            // na CareerPage antes de começar o torneio, não varia mais com a dificuldade.
+            state.CareerSkillLevel   = CareerService.GetSkillLevel(opp.Difficulty);
             ResultPanel.IsVisible = false;
-            _vm.StartTournamentGame(opp.Name, state.CareerTimeMinutes, state.CareerAIDepth);
+
+            // Copa do Mundo (eliminação): cada rodada agora é melhor-de-2, então perder o
+            // 1º jogo não encerra nada — tem um 2º jogo (e desempate, se 1-1) contra o MESMO
+            // adversário. Sem isso, o app pulava direto pro próximo jogo sem avisar, e parecia
+            // bug ("perdi e continuou jogando a mesma fase?"). Aqui, volta pra CareerPage
+            // pra mostrar "Jogo 2/2" ou "Desempate" antes de continuar.
+            bool isElimination = state.Career.Progress.ActiveTournament?.Format == CareerFormat.Elimination;
+            if (isElimination)
+            {
+                await Shell.Current.GoToAsync("..");
+                return;
+            }
+
+            // Sem isso, OnTournamentGameEnded barra na guarda "if (_resultShownForGame) return;"
+            // pro resto do torneio inteiro — a rodada 2 em diante terminava sem nunca exibir o
+            // painel de resultado nem o botão de continuar, já que essa mesma GamePage é
+            // reaproveitada entre rodadas (sem recriar a página).
+            _resultShownForGame = false;
+            _vm.StartTournamentGame(opp.Name, state.CareerTimeMinutes, state.CareerAIDepth, state.CareerSkillLevel);
             return;
         }
 
@@ -999,23 +796,12 @@ public partial class GamePage : ContentPage
         }
 
         ResultPanel.IsVisible = false;
-        if (_vm.IsTournamentMode || _vm.IsFriendMode || _vm.IsPuzzleMode)
+        if (_vm.IsTournamentMode || _vm.IsFriendMode)
         {
-            PuzzleBanner.IsVisible = false;
             await Shell.Current.GoToAsync("..");
         }
         else
             OnSetupNewGameClicked();
-    }
-
-    // -----------------------------------------------------------------------
-    // Botão: Voltar ao Torneio
-    // -----------------------------------------------------------------------
-    private async void OnReturnToTournamentClicked(object? sender, EventArgs e)
-    {
-        AppState.Current.MatchResultReady = true;
-        Title = "Xadrez";
-        await Shell.Current.GoToAsync("..");
     }
 
     // -----------------------------------------------------------------------
@@ -1110,8 +896,7 @@ public partial class GamePage : ContentPage
     {
         base.OnSizeAllocated(width, height);
 
-        double puzzleExtra = _vm.IsPuzzleMode ? 44 : 0;
-        double used = (_vm.TimerVisible ? 280 : 180) + puzzleExtra;
+        double used = _vm.TimerVisible ? 280 : 180;
         double available = Math.Min(width - 16, height - used);
         if (available <= 0) return;
 

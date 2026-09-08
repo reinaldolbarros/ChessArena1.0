@@ -81,11 +81,18 @@
                         BackgroundColor="#061F33" Stroke="#1E3A5A" StrokeThickness="1.1"
                         StrokeShape="RoundRectangle 16" Padding="0">
                     <VerticalStackLayout>
-                        <Label Text="Copa do Mundo FIDE — Eliminação Direta"
+                        <Label Text="Copa do Mundo FIDE — Oitavas, Semifinal e Final"
                                TextColor="#F2F5F8" FontSize="14" FontAttributes="Bold"
-                               Padding="16,12,16,10"/>
+                               Padding="16,12,16,2"/>
+                        <Label Text="Empate 1-1 na mini-partida vai para o desempate — só a derrota no desempate elimina."
+                               TextColor="#8A9AAA" FontSize="12"
+                               Padding="16,0,16,10"/>
                         <BoxView HeightRequest="1" BackgroundColor="#1E3A5A"/>
                         <VerticalStackLayout x:Name="CopaBracket" Spacing="0" Padding="0,4,0,4"/>
+                        <Label x:Name="CopaMiniMatchStatusLabel" Text=""
+                               TextColor="#FFD700" FontSize="13" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               Padding="16,6,16,12"/>
                     </VerticalStackLayout>
                 </Border>
 
@@ -94,9 +101,6 @@
                         BackgroundColor="#071F3C" Stroke="#FFD447" StrokeThickness="1.4"
                         StrokeShape="RoundRectangle 16" Padding="16,20">
                     <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                        <Label Text="Campeonato Mundial de Xadrez"
-                               TextColor="#9FB3C8" FontSize="13" FontAttributes="Bold"
-                               HorizontalTextAlignment="Center"/>
                         <Label x:Name="MundialScoreLabel" Text="0 × 0"
                                TextColor="#F2F5F8" FontSize="40" FontAttributes="Bold"
                                HorizontalTextAlignment="Center"/>
@@ -106,6 +110,25 @@
                         <BoxView HeightRequest="1" BackgroundColor="#1E3A5A" Margin="0,4,0,4"/>
                         <VerticalStackLayout x:Name="MundialHistory" Spacing="4"/>
                     </VerticalStackLayout>
+                </Border>
+
+                <!-- ══ Tempo por jogador ══ -->
+                <Border x:Name="TimeControlSection" IsVisible="False"
+                        BackgroundColor="#071F3C" Stroke="#1E3A5A" StrokeThickness="1.1"
+                        StrokeShape="RoundRectangle 16" Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                        <Label Text="Tempo por jogador" TextColor="#9FB3C8" FontSize="13"
+                               VerticalOptions="Center"/>
+                        <Button x:Name="CareerTime5Btn"  Grid.Column="1" Text="5 min"
+                                Clicked="OnCareerTime5Clicked"  FontSize="12" CornerRadius="8"
+                                Padding="10,6" BackgroundColor="#0D2A4A" TextColor="#9AB8D8"/>
+                        <Button x:Name="CareerTime10Btn" Grid.Column="2" Text="10 min"
+                                Clicked="OnCareerTime10Clicked" FontSize="12" CornerRadius="8"
+                                Padding="10,6" BackgroundColor="#0D2A4A" TextColor="#9AB8D8"/>
+                        <Button x:Name="CareerTime15Btn" Grid.Column="3" Text="15 min"
+                                Clicked="OnCareerTime15Clicked" FontSize="12" CornerRadius="8"
+                                Padding="10,6" BackgroundColor="#0D2A4A" TextColor="#9AB8D8"/>
+                    </Grid>
                 </Border>
 
                 <!-- ══ Próximo adversário ══ -->
@@ -179,6 +202,9 @@
                     FontAttributes="Bold" FontSize="16"
                     CornerRadius="14" HeightRequest="50"/>
         </VerticalStackLayout>
+
+        <!-- ══ Confete de comemoração — só aparece ao se tornar Campeão Mundial ══ -->
+        <Grid x:Name="ConfettiLayer" Grid.RowSpan="2" InputTransparent="True" IsVisible="False"/>
 
     </Grid>
 </ContentPage>

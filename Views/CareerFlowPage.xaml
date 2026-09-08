@@ -45,7 +45,7 @@
                         <Label Grid.Column="1" Text="Torneio Local"
                                TextColor="White" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores"
+                    <Label Text="Formato: Suíço · 5 rodadas · 6 jogadores (Fácil-Médio)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="✓ Top 2 → Torneio Zonal" TextColor="#4CAF50" FontSize="15"/>
                     <Label Text="✗ Fora → Tentar novamente (sem limite)" TextColor="#FF7070" FontSize="15"/>
@@ -62,7 +62,7 @@
                         <Label Grid.Column="1" Text="Torneio Zonal"
                                TextColor="White" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores"
+                    <Label Text="Formato: Suíço · 5 rodadas · 6 jogadores (Fácil-Médio)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="✓ Top 2 → Copa do Mundo FIDE" TextColor="#4CAF50" FontSize="15"/>
                     <Label Text="✗ 1ª tentativa falha → Nova tentativa no Zonal" TextColor="#FF7070" FontSize="15"/>
@@ -80,11 +80,11 @@
                         <Label Grid.Column="1" Text="Copa do Mundo FIDE"
                                TextColor="White" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Eliminação direta · 3 partidas"
+                    <Label Text="Formato: Eliminação direta · 3 rodadas, melhor de 2 (até Difícil)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="⚡ Vencer todas → Candidatos (classificação direta!)" TextColor="#FFD700" FontSize="15"/>
-                    <Label Text="✗ Qualquer derrota → Grand Swiss" TextColor="#FF7070" FontSize="15"/>
-                    <Label Text="Dica: Empate na eliminação equivale a derrota."
+                    <Label Text="✗ Perder a mini-partida de qualquer rodada → Grand Swiss" TextColor="#FF7070" FontSize="15"/>
+                    <Label Text="Dica: 1-1 nos 2 jogos vai pro desempate — só a derrota no desempate elimina."
                            TextColor="#9AB8D8" FontSize="15" FontAttributes="Italic"/>
                 </VerticalStackLayout>
             </Border>
@@ -99,7 +99,7 @@
                         <Label Grid.Column="1" Text="Grand Swiss"
                                TextColor="White" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores (IA média-alta)"
+                    <Label Text="Formato: Suíço · 5 rodadas · 6 jogadores (até Difícil)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="✓ Top 2 → Candidatos" TextColor="#4CAF50" FontSize="15"/>
                     <Label Text="✗ Fora → Grand Prix FIDE" TextColor="#FF7070" FontSize="15"/>
@@ -116,7 +116,7 @@
                         <Label Grid.Column="1" Text="Grand Prix FIDE"
                                TextColor="White" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Suíço · 7 rodadas · 8 jogadores (IA avançada)"
+                    <Label Text="Formato: Suíço · 5 rodadas · 6 jogadores (Difícil)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="✓ 1º lugar → Candidatos" TextColor="#4CAF50" FontSize="15"/>
                     <Label Text="✗ Fora → Nova Copa do Mundo" TextColor="#FF7070" FontSize="15"/>
@@ -133,7 +133,7 @@
                         <Label Grid.Column="1" Text="Torneio de Candidatos"
                                TextColor="White" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Round-robin · 7 rodadas · Adversários de elite"
+                    <Label Text="Formato: Round-robin · 5 rodadas · 6 jogadores de elite (Difícil)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="✓ 1º lugar → Campeonato Mundial" TextColor="#4CAF50" FontSize="15"/>
                     <Label Text="✗ Fora → Nova Copa do Mundo" TextColor="#FF7070" FontSize="15"/>
@@ -150,7 +150,7 @@
                         <Label Grid.Column="1" Text="🏆 Campeonato Mundial"
                                TextColor="#FFD700" FontSize="15" FontAttributes="Bold"/>
                     </Grid>
-                    <Label Text="Formato: Melhor de 5 vitórias · IA Mestre máximo"
+                    <Label Text="Formato: Melhor de 5 vitórias · 2 jogadores (Hard, força máxima)"
                            TextColor="#A8BCCC" FontSize="15"/>
                     <Label Text="✓ 3 vitórias → Campeão Mundial de Xadrez!" TextColor="#FFD700" FontSize="15"/>
                     <Label Text="✗ Derrota → Volta aos Candidatos" TextColor="#FF7070" FontSize="15"/>

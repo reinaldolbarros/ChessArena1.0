@@ -12,38 +12,29 @@ public partial class RankingPage : ContentPage
         InitializeComponent();
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        var svc = AppState.Current.Ranking;
-        svc.RankingUpdated -= Refresh;
-        svc.RankingUpdated += Refresh;
-        Refresh();
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        AppState.Current.Ranking.RankingUpdated -= Refresh;
+        await RefreshAsync();
     }
 
     // -----------------------------------------------------------------------
     // Abas
     // -----------------------------------------------------------------------
-    private void OnGlobalTab(object? sender, EventArgs e)
+    private async void OnGlobalTab(object? sender, EventArgs e)
     {
         _showWeekly = false;
         GlobalTab.BackgroundColor = Color.FromArgb("#1A5276"); GlobalTab.TextColor = Colors.White;
         WeeklyTab.BackgroundColor = Color.FromArgb("#0F3460"); WeeklyTab.TextColor = Color.FromArgb("#AAAACC");
-        Refresh();
+        await RefreshAsync();
     }
 
-    private void OnWeeklyTab(object? sender, EventArgs e)
+    private async void OnWeeklyTab(object? sender, EventArgs e)
     {
         _showWeekly = true;
         WeeklyTab.BackgroundColor = Color.FromArgb("#1A5276"); WeeklyTab.TextColor = Colors.White;
         GlobalTab.BackgroundColor = Color.FromArgb("#0F3460"); GlobalTab.TextColor = Color.FromArgb("#AAAACC");
-        Refresh();
+        await RefreshAsync();
     }
 
     private async void OnExtractClicked(object? sender, EventArgs e)
@@ -52,13 +43,13 @@ public partial class RankingPage : ContentPage
     // -----------------------------------------------------------------------
     // Atualiza lista
     // -----------------------------------------------------------------------
-    private const int ListLimit = 20;
+    private const int ListLimit = 15;
 
-    private void Refresh()
+    private async Task RefreshAsync()
     {
         var profile = AppState.Current.Profile;
         var svc     = AppState.Current.Ranking;
-        var entries = _showWeekly ? svc.GetWeekly(profile) : svc.GetGlobal(profile);
+        var entries = _showWeekly ? await svc.GetWeeklyAsync(profile) : await svc.GetGlobalAsync(profile);
 
         var displayed    = entries.Take(ListLimit).ToList();
         bool playerInList = displayed.Any(e => e.IsHuman);
@@ -69,14 +60,12 @@ public partial class RankingPage : ContentPage
         foreach (var e in displayed)
             RankList.Children.Add(BuildRow(e, _showWeekly));
 
-        var me = entries.First(e => e.IsHuman);
-        MyPositionFrame.IsVisible = !playerInList;
+        // Se o usuário não está entre os exibidos, a linha dele entra no final da mesma
+        // lista — aparece naturalmente depois do último jogador, dentro do scroll normal.
         if (!playerInList)
         {
-            MyPosLabel.Text    = me.PositionLabel;
-            MyAvatarLabel.Text = me.Avatar;
-            MyNameLabel.Text   = me.Name;
-            MyPointsLabel.Text = _showWeekly ? $"{me.WeekPoints:N0}" : $"{me.Points:N0}";
+            var me = entries.First(e => e.IsHuman);
+            RankList.Children.Add(BuildRow(me, _showWeekly));
         }
     }
 

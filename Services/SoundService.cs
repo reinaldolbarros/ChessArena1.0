@@ -17,6 +17,22 @@ public class SoundService
     public void PlayCheck()    => Fire(880, 0.13);          // Lá agudo — xeque
     public void PlayGameOver() => Fire(220, 0.55);          // Lá grave — fim de jogo
 
+    // Fanfarra de vitória — arpejo maior ascendente (Dó-Mi-Sol-Dó), pra comemorar
+    // conquistar o Campeonato Mundial. Sintetizada, sem precisar de arquivo de áudio.
+    public void PlayVictoryFanfare() => _ = PlayFanfareAsync();
+
+    private async Task PlayFanfareAsync()
+    {
+        if (!Enabled) return;
+        double[] notes = [523.25, 659.25, 783.99, 1046.50]; // Dó5-Mi5-Sol5-Dó6
+        foreach (var hz in notes)
+        {
+            _ = PlayAsync(hz, 0.20);
+            await Task.Delay(150);
+        }
+        _ = PlayAsync(1046.50, 0.6);
+    }
+
     private void Fire(double hz, double sec) => _ = PlayAsync(hz, sec);
 
     private async Task PlayAsync(double hz, double sec)

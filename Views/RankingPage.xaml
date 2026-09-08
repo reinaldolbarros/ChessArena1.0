@@ -5,7 +5,7 @@
              Title="Ranking"
              BackgroundColor="#1A1A2E">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- ══ Abas Global / Semanal ══ -->
         <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="#0F3460">
@@ -25,7 +25,9 @@
             <Label Grid.Column="2" Text="Rating"  TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
         </Grid>
 
-        <!-- ══ Lista de ranking ══ -->
+        <!-- ══ Lista de ranking — se o usuário não estiver entre os exibidos, a linha dele
+             é adicionada ao final desta mesma lista (ver RankingPage.xaml.cs), aparecendo
+             naturalmente depois do último jogador, e não como um quadro fixo separado ══ -->
         <ScrollView Grid.Row="2">
             <VerticalStackLayout x:Name="RankList" Spacing="1"/>
         </ScrollView>
@@ -36,20 +38,6 @@
                 Clicked="OnExtractClicked"
                 BackgroundColor="#12172A" TextColor="#A0A0CC"
                 FontSize="15" CornerRadius="0" HeightRequest="34" Padding="0"/>
-
-        <!-- ══ Sua posição (fixada no rodapé) ══ -->
-        <Border Grid.Row="4" x:Name="MyPositionFrame"
-                BackgroundColor="#1C2A1C" Stroke="#FFD700" StrokeThickness="1"
-                Padding="10,8">
-            <Grid ColumnDefinitions="44,*,80">
-                <Label x:Name="MyPosLabel" TextColor="#FFD700" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
-                <StackLayout Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                    <Label x:Name="MyAvatarLabel" FontSize="16" VerticalOptions="Center"/>
-                    <Label x:Name="MyNameLabel"   TextColor="#FFD700" FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
-                </StackLayout>
-                <Label x:Name="MyPointsLabel" Grid.Column="2" TextColor="#4CAF50" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
-            </Grid>
-        </Border>
 
     </Grid>
 </ContentPage>

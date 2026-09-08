@@ -8,6 +8,30 @@ public partial class LobbyPage : ContentPage
     public LobbyPage()
     {
         InitializeComponent();
+        // Tenta carregar a bandeira de novo quando a internet voltar — sem internet
+        // no primeiro carregamento, o app só fica aguardando em segundo plano,
+        // sem exibir erro nenhum pro usuário.
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+    }
+
+    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        if (e.NetworkAccess != NetworkAccess.Internet) return;
+        MainThread.BeginInvokeOnMainThread(() => SetFlag(AppState.Current.Profile.Country));
+    }
+
+    private void SetFlag(string country)
+    {
+        CountryLabel.Text      = country;
+        CountryLabel.IsVisible = !string.IsNullOrEmpty(country);
+
+        // FlagImage.IsVisible fica true assim que há URL pra tentar — enquanto a
+        // imagem não termina de baixar (ou falha por falta de internet), o espaço
+        // reservado (WidthRequest/HeightRequest no XAML) fica só em branco, sem
+        // nenhuma indicação de erro ou carregamento.
+        string? flagUrl     = GeoData.FlagUrl(country);
+        FlagImage.Source    = flagUrl;
+        FlagImage.IsVisible = flagUrl != null;
     }
 
     protected override async void OnAppearing()
@@ -29,8 +53,8 @@ public partial class LobbyPage : ContentPage
 
     private async Task RefreshUI()
     {
-        var p     = AppState.Current.Profile;
-        var daily = AppState.Current.Daily;
+        var p = AppState.Current.Profile;
+        p.EnsureCountryDefault();
 
         // File.Exists em background para não bloquear a thread de UI
         bool hasPhoto = !string.IsNullOrEmpty(p.AvatarPath)
@@ -41,17 +65,16 @@ public partial class LobbyPage : ContentPage
         if (hasPhoto) AvatarImage.Source = ImageSource.FromFile(p.AvatarPath);
         else          AvatarLabel.Text   = p.Avatar;
 
-        NameLabel.Text = p.Name;
+        NameLabel.Text   = p.Name;
+        PointsLabel.Text = $"{p.Points} Elo";
 
-        // Nível derivado do Elo (Nível 1 a ~50)
-        int level = Math.Max(1, (int)Math.Round((p.Points - 800.0) / 30));
-        RatingLabel.Text = $"Nível {level}  ·  Rating {p.Points:N0}";
+        SetFlag(p.Country);
 
-        // Localização
-        string loc = p.Country.Length > 0 && p.State.Length > 0 ? $"{p.Country} · {p.State}"
-                   : p.Country.Length > 0 ? p.Country
-                   : p.State.Length > 0   ? p.State : "";
-        ProfileLocationLabel.Text = loc;
+        // Localização — removida do cabeçalho (ver LobbyPage.xaml)
+        // string loc = p.Country.Length > 0 && p.State.Length > 0 ? $"{p.Country} · {p.State}"
+        //            : p.Country.Length > 0 ? p.Country
+        //            : p.State.Length > 0   ? p.State : "";
+        // ProfileLocationLabel.Text = loc;
         int total   = p.Wins + p.Losses;
         int rate    = total > 0 ? p.Wins * 100 / total : 0;
         WinRateLabel.Text      = total > 0 ? $"{rate}%" : "—";
@@ -61,32 +84,30 @@ public partial class LobbyPage : ContentPage
                                : Color.FromArgb("#DD5040");
         WinRecordLabel.Text    = total > 0 ? $"{p.Wins}V  ·  {p.Losses}D" : "";
         GamesPlayedLabel.Text  = total.ToString();
-        TournWinsLabel.Text    = p.TournamentsWon.ToString();
+        // TournWinsLabel.Text = p.TournamentsWon.ToString(); — COMENTADO: card Torneios
+        // desativado na Fase 0 (ver LobbyPage.xaml). Reativar junto com a Liga em v2.0.
 
-        // Puzzle do Dia — declarado antes da missão porque missionDone depende de doneToday
-        var  puzzleSvc = AppState.Current.PuzzleSvc;
-        bool isSub     = AppState.Current.Subscription.IsActive;
-        int  doneToday = puzzleSvc.GetDailyCount();
-        bool canPlay   = puzzleSvc.CanPlayMore(isSub);
+        bool isSub = AppState.Current.Subscription.IsActive;
 
-        // Missão / Bônus diário
-        bool claimed     = daily.BonusClaimedToday;
-        int  streak      = daily.LoginStreak;
-        int  missionGoal = 3;
-        int  missionDone = Math.Min(doneToday, missionGoal);
-        BonusTitle.Text      = "Missão de Hoje";
-        BonusTitle.TextColor = Color.FromArgb("#FFFFFF");
-        BonusStreakLabel.Text      = $"Resolver {missionGoal} puzzles";
-        BonusStreakLabel.TextColor = Color.FromArgb("#C8A020");
-        BonusProgressLabel.Text = claimed
-            ? $"✓ Concluída  ·  {streak} dias seguidos"
-            : $"{missionDone}/{missionGoal}  ·  +50 XP";
-        BonusProgressLabel.TextColor  = Color.FromArgb("#C8A020");
-        MissionProgressBar.Progress = claimed ? 1.0 : Math.Min(1.0, (double)missionDone / missionGoal);
-        BonusBtn.IsVisible     = !claimed;
-        BonusArrow.IsVisible   = claimed;
-        BonusArrow.Text        = "✓";
-        BonusArrow.TextColor   = Color.FromArgb("#C8A020");
+        // Missão / Bônus diário — COMENTADO: Fase 0 (lançamento sem monetização/gamificação,
+        // foco em crescer a base). Card fica oculto (MissionCard.IsVisible=False no XAML).
+        // Reativar preenchendo os labels abaixo quando decidirmos religar a funcionalidade.
+        // bool claimed  = daily.BonusClaimedToday;
+        // int  streak   = daily.LoginStreak;
+        // var  mission  = daily.GetMissions().First(m => m.Id == "m1");
+        // BonusTitle.Text      = "Missão de Hoje";
+        // BonusTitle.TextColor = Color.FromArgb("#FFFFFF");
+        // BonusStreakLabel.Text      = mission.Description;
+        // BonusStreakLabel.TextColor = Color.FromArgb("#C8A020");
+        // BonusProgressLabel.Text = claimed
+        //     ? $"✓ Concluída  ·  {streak} dias seguidos"
+        //     : $"{mission.Progress}/{mission.Target}  ·  +{mission.StarReward} ⭐";
+        // BonusProgressLabel.TextColor  = Color.FromArgb("#C8A020");
+        // MissionProgressBar.Progress = claimed ? 1.0 : Math.Min(1.0, (double)mission.Progress / mission.Target);
+        // BonusBtn.IsVisible     = !claimed;
+        // BonusArrow.IsVisible   = claimed;
+        // BonusArrow.Text        = "✓";
+        // BonusArrow.TextColor   = Color.FromArgb("#C8A020");
 
         AdminBtn.IsVisible = AppState.Current.IsAdminMode && !AppState.Current.Auth.IsAnonymous;
 
@@ -112,17 +133,17 @@ public partial class LobbyPage : ContentPage
         //     : "Jogue para garantir vaga prioritária na Liga";
         // CasualStatusLabel.TextColor = hasPrio ? Color.FromArgb("#4CAF50") : Color.FromArgb("#4A6888");
 
-        // Puzzle do Dia — exibição (dados já declarados acima)
-        string countStr = isSub ? $"{doneToday} hoje" : $"{doneToday}/{PuzzleService.FreeLimit} hoje";
-        PuzzleSubLabel.Text = canPlay || isSub ? countStr : "🔒 Limite atingido";
-        PuzzleSolvedBadge.IsVisible = !canPlay && !isSub;
-
         // Career.Progress faz JSON deserialization — executa em background
         var career = await Task.Run(() => AppState.Current.Career.Progress);
-        string cycleTag = career.TitlesWon > 0 ? $"  ·  {career.TitlesWon}× 🏆" : "";
-        CareerTournamentLabel.Text = career.ActiveTournament != null
+        // Selo de título — só aparece aqui, na tela inicial (não é repetido dentro do
+        // Modo Carreira). Vai na linha do nível (mais curta), não na de Rodada/Adversário
+        // (que já pode ficar longa e cortar o selo). Usa o nome de verdade (Bicampeão...).
+        string cycleTag = career.TitlesWon > 0
+            ? $"  ·  🏆 {CareerService.ChampionTitleName(career.TitlesWon)}"
+            : "";
+        CareerTournamentLabel.Text = (career.ActiveTournament != null
             ? career.ActiveTournament.LevelName
-            : "Do Local ao Mundial";
+            : "Do Local ao Mundial") + (career.IsCareerCompleted ? "" : cycleTag);
         string careerSub;
         if (career.IsCareerCompleted)
         {
@@ -352,26 +373,6 @@ public partial class LobbyPage : ContentPage
     //     => await Shell.Current.GoToAsync("TournamentLobbyPage");
     // private async void OnHistoryClicked(object? sender, EventArgs e)
     //     => await Shell.Current.GoToAsync("TournamentHistoryPage");
-
-    private async void OnPuzzleTapped(object? sender, TappedEventArgs e)
-    {
-        await FlashTap(PuzzleCard);
-        var  svc   = AppState.Current.PuzzleSvc;
-        bool isSub = AppState.Current.Subscription.IsActive;
-
-        if (!svc.CanPlayMore(isSub))
-        {
-            await DisplayAlert(
-                "🔒 Limite Diário",
-                $"Você já jogou os {PuzzleService.FreeLimit} puzzles gratuitos de hoje.\n\n" +
-                "Assine o plano Premium para puzzles ilimitados e volte amanhã para mais desafios gratuitos!",
-                "OK");
-            return;
-        }
-
-        AppState.Current.PendingPuzzle = true;
-        await Shell.Current.GoToAsync("GamePage");
-    }
 
     private async void OnRankingClicked(object? sender, EventArgs e)
         => await Shell.Current.GoToAsync("//RankingPage");

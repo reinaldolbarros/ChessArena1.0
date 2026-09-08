@@ -14,11 +14,14 @@ public enum CareerStageOutcome { None, Advanced, AdvancedDirect, Eliminated }
 
 public class CareerPlayer
 {
-    public string       Name       { get; set; } = "";
-    public int          Difficulty { get; set; }
-    public double       Points     { get; set; }
-    public bool         IsHuman    { get; set; }
-    public List<string> Faced      { get; set; } = [];
+    public string       Name        { get; set; } = "";
+    public int          Difficulty  { get; set; }
+    public double       Points      { get; set; }
+    public bool         IsHuman     { get; set; }
+    public List<string> Faced       { get; set; } = [];
+    // Como esse jogador chegou no torneio (ex.: "Grand Swiss", "Wildcard") — só usado
+    // nos Candidatos, pra dar sentido a quem são os outros 7 jogadores (ver CareerService).
+    public string        QualifiedVia { get; set; } = "";
 }
 
 public class CareerRound
@@ -46,6 +49,12 @@ public class CareerTournamentState
     public int HumanLosses { get; set; }
     public int WinsNeeded  { get; set; } = 3;
 
+    // Elimination (Copa do Mundo) — cada rodada (Oitavas/Semi/Final) é uma mini-partida de
+    // melhor-de-2, com desempate (jogo 3) se empatar 1-1. MiniMatchGame vai de 1 a 3.
+    public int    MiniMatchGame     { get; set; } = 1;
+    public double MiniMatchMyScore  { get; set; }
+    public double MiniMatchOppScore { get; set; }
+
     public CareerPlayer  Human    => Players.First(p => p.IsHuman);
     public CareerPlayer? Opponent => Players.FirstOrDefault(p => !p.IsHuman);
 
@@ -63,13 +72,13 @@ public class CareerTournamentState
 
     public string LevelSubtitle => Level switch
     {
-        CareerLevel.Local      => "Suíço · 7 rodadas · Top 2 avançam",
-        CareerLevel.Zonal      => "Suíço · 7 rodadas · Top 2 avançam",
-        CareerLevel.CopaMundo  => "Eliminação direta · 3 partidas",
-        CareerLevel.GrandSwiss => "Suíço · 7 rodadas · Top 2 avançam",
-        CareerLevel.GrandPrix  => "Suíço · 7 rodadas · Apenas o 1º avança",
-        CareerLevel.Candidatos => "Round-robin · 7 rodadas · Apenas o 1º avança",
-        CareerLevel.Mundial    => "Melhor de 5 · IA Mestre",
+        CareerLevel.Local      => "Suíço · 5 rodadas · Top 2 avançam",
+        CareerLevel.Zonal      => "Suíço · 5 rodadas · Top 2 avançam",
+        CareerLevel.CopaMundo  => "Eliminação direta · 3 rodadas, melhor de 2",
+        CareerLevel.GrandSwiss => "Suíço · 5 rodadas · Top 2 avançam",
+        CareerLevel.GrandPrix  => "Suíço · 5 rodadas · Apenas o 1º avança",
+        CareerLevel.Candidatos => "Round-robin · 5 rodadas · Apenas o 1º avança",
+        CareerLevel.Mundial    => "Melhor de 5 · Hard, força máxima",
         _                      => ""
     };
 

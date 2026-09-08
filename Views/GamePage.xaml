@@ -27,43 +27,6 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto" Padding="8,4">
 
-        <!-- ══════════════════════════════════════════════
-             Linha 0 — Banner do Puzzle (visível só em modo puzzle)
-             ══════════════════════════════════════════════ -->
-        <Border x:Name="PuzzleBanner"
-                Grid.Row="0"
-                BackgroundColor="#0D1A2E"
-                Stroke="#1A3A5A" StrokeThickness="1"
-                StrokeShape="RoundRectangle 10"
-                Padding="14,8" Margin="0,2,0,6"
-                IsVisible="False">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                <Label x:Name="PuzzleCategoryLabel"
-                       Text="🧩 Xeque-mate"
-                       TextColor="#FFD700" FontSize="14" FontAttributes="Bold"
-                       VerticalOptions="Center"/>
-                <Label x:Name="PuzzleDescLabel"
-                       Grid.Column="1"
-                       Text=""
-                       TextColor="#9AAEC8" FontSize="12"
-                       VerticalOptions="Center"
-                       Margin="10,0,0,0"/>
-                <Label x:Name="PuzzleProgressLabel"
-                       Grid.Column="2"
-                       Text="0 / 1"
-                       TextColor="#5A8AB0" FontSize="13" FontAttributes="Bold"
-                       VerticalOptions="Center"
-                       Margin="8,0,0,0"/>
-                <Button x:Name="GiveUpBtn"
-                        Grid.Column="3"
-                        Text="Ver solução"
-                        Clicked="OnGiveUpPuzzleClicked"
-                        BackgroundColor="#1A2840" TextColor="#8AADCC"
-                        FontSize="12" CornerRadius="6"
-                        Padding="8,0" HeightRequest="30"
-                        Margin="8,0,0,0"/>
-            </Grid>
-        </Border>
 
         <!-- ══════════════════════════════════════════════
              Linha 1 — Relógio das PRETAS (IA)
@@ -221,15 +184,6 @@
                     Clicked="OnSetupNewGameClicked"
                     IsVisible="{Binding ShowNewGameButton}"
                     BackgroundColor="#769656"
-                    TextColor="White"
-                    FontAttributes="Bold"
-                    CornerRadius="8"
-                    Padding="16,10"/>
-            <Button x:Name="ReturnBtn"
-                    Text="← Torneio"
-                    Clicked="OnReturnToTournamentClicked"
-                    IsVisible="{Binding ShowReturnButton}"
-                    BackgroundColor="#0F3460"
                     TextColor="White"
                     FontAttributes="Bold"
                     CornerRadius="8"
@@ -439,13 +393,6 @@
                                     FontAttributes="Bold" FontSize="15"
                                     CornerRadius="8" HeightRequest="46"
                                     IsVisible="False"/>
-                            <Button x:Name="ResultSolutionBtn" Text="Ver Solução"
-                                    Clicked="OnViewSolutionClicked"
-                                    BackgroundColor="#161B22" TextColor="#C9D1D9"
-                                    BorderColor="#30363D" BorderWidth="1"
-                                    FontAttributes="Bold" FontSize="15"
-                                    CornerRadius="8" HeightRequest="46"
-                                    IsVisible="False"/>
                             <Button x:Name="NewOnlineBtn" Text="Nova Partida Online"
                                     Clicked="OnNewOnlineClicked"
                                     BackgroundColor="#1F6FEB" TextColor="White"
@@ -503,45 +450,6 @@
             </Border>
         </Grid>
 
-        <!-- ══════════════════════════════════════════════
-             Barra de SOLUÇÃO — cobre relógio inferior + botões
-             O tabuleiro permanece visível acima para estudo
-             ══════════════════════════════════════════════ -->
-        <Grid x:Name="SolutionBar"
-              Grid.Row="6" Grid.RowSpan="4"
-              BackgroundColor="#0A1220"
-              IsVisible="False">
-            <VerticalStackLayout Spacing="8" Padding="20,14"
-                                 VerticalOptions="Center">
-
-                <Label x:Name="SolutionCategoryLabel"
-                       Text="🧩 Xeque-mate"
-                       FontSize="16" FontAttributes="Bold"
-                       TextColor="#FFD700"
-                       HorizontalTextAlignment="Center"/>
-
-                <Label x:Name="SolutionHintLabel"
-                       Text=""
-                       FontSize="13" TextColor="#7AAAC8"
-                       HorizontalTextAlignment="Center"
-                       Margin="0,0,0,2"/>
-
-                <BoxView HeightRequest="1" BackgroundColor="#1E3050" Margin="0,2"/>
-
-                <Label x:Name="SolutionExplanationLabel"
-                       Text=""
-                       FontSize="14" TextColor="#C8DCF0"
-                       HorizontalTextAlignment="Center"
-                       LineBreakMode="WordWrap"/>
-
-                <Button Text="✓ Entendi — Continuar"
-                        Clicked="OnSolutionContinueClicked"
-                        BackgroundColor="#1A3A5A" TextColor="White"
-                        FontAttributes="Bold" FontSize="15"
-                        CornerRadius="10" HeightRequest="50"
-                        Margin="0,6,0,0"/>
-            </VerticalStackLayout>
-        </Grid>
 
         <!-- ══ Painel de SETUP ══ -->
         <ScrollView x:Name="SetupPanel"
@@ -675,8 +583,15 @@
                         <TapGestureRecognizer Tapped="OnDiffHardTapped"/>
                     </Label.GestureRecognizers>
                 </Label>
+                <BoxView HeightRequest="1" BackgroundColor="#1A2535"/>
+                <Label Text="Hard" FontSize="16" TextColor="#FF5B5B" FontAttributes="Bold" Padding="20,16">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnDiffHardcoreTapped"/>
+                    </Label.GestureRecognizers>
+                </Label>
             </VerticalStackLayout>
         </Border>
+
 
     </Grid>
 </ContentPage>

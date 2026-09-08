@@ -11,14 +11,16 @@ public partial class DailyMissionsPage : ContentPage
         InitializeComponent();
     }
 
-    public static bool ShouldShow()
-    {
-        var auth = AppState.Current.Auth;
-        if (!auth.IsAuthenticated || auth.IsAnonymous) return false;
-
-        string today = DateTime.Today.ToString("yyyy-MM-dd");
-        return Preferences.Default.Get(ShownDateKey, "") != today;
-    }
+    // COMENTADO: Fase 0 — lançamento sem gamificação/missões, foco em crescer a base.
+    // Reativar descomentando o corpo original abaixo quando decidirmos religar a funcionalidade.
+    public static bool ShouldShow() => false;
+    // {
+    //     var auth = AppState.Current.Auth;
+    //     if (!auth.IsAuthenticated || auth.IsAnonymous) return false;
+    //
+    //     string today = DateTime.Today.ToString("yyyy-MM-dd");
+    //     return Preferences.Default.Get(ShownDateKey, "") != today;
+    // }
 
     public static void MarkShown() =>
         Preferences.Default.Set(ShownDateKey, DateTime.Today.ToString("yyyy-MM-dd"));

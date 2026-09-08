@@ -7,14 +7,26 @@ public class CareerService
 {
     private const string Key = "career_v3";
 
-    private static readonly string[] Letters          = ["A","B","C","D","E","F","G"];
-    private static readonly string[] CandidatosNames  = ["Caruana","Nepomniachtchi","Firouzja","Gukesh","Pragg","Vidit","Abasov"];
+    private static readonly string[] Letters = ["A","B","C","D","E"];
 
     private static readonly string[][] CopaOpponentNames =
     [
         ["Korobov",  "Vachier-Lagrave", "Aronian"],
         ["Duda",     "Rapport",         "Nakamura"],
         ["So",       "Mamedyarov",      "Ding Liren"],
+    ];
+
+    // Elenco fixo dos Candidatos — sempre os mesmos 5, cada um com sua origem de
+    // classificação. Fixo, não sorteado — só dá sentido a quem são os outros 5 jogadores,
+    // sem precisar simular os outros torneios jogo a jogo. Difícil (3) é o teto aqui —
+    // Hard (4) fica exclusivo do Campeonato Mundial.
+    private static readonly (string Name, string Label, int Difficulty)[] CandidatosLineup =
+    [
+        ("Caruana",       "Campeão da Copa do Mundo",   3),
+        ("Nepomniachtchi","Classificado do Grand Swiss", 3),
+        ("Firouzja",      "Classificado do Grand Swiss", 3),
+        ("Gukesh",        "Campeão do Grand Prix",      3),
+        ("Carlsen",       "Maior rating médio",         3),
     ];
 
     // ── Persistence ───────────────────────────────────────────────────────────
@@ -35,18 +47,20 @@ public class CareerService
 
     // ── Level configs ─────────────────────────────────────────────────────────
 
+    // Escala de dificuldade: 1=Fácil, 2=Médio, 3=Difícil, 4=Hard (ver GetSkillLevel).
+    // Local e Zonal só usam Fácil/Médio — nunca Difícil nem Hard. As fases seguintes
+    // (Copa, Grand Swiss, Grand Prix, Candidatos) podem chegar até Difícil. Hard fica
+    // reservado exclusivamente pro Campeonato Mundial (CreateMundial).
     private static int[] GetDiffs(CareerLevel level) => level switch
     {
-        CareerLevel.Local      => [1,1,1,2,2,2,2],
-        CareerLevel.Zonal      => [1,2,2,2,3,3,3],
-        CareerLevel.GrandSwiss => [2,3,3,3,4,4,4],
-        CareerLevel.GrandPrix  => [3,4,4,4,5,5,5],
-        CareerLevel.Candidatos => [4,4,5,5,5,5,5],
-        _                      => [2,2,2,3,3,3,3]
+        CareerLevel.Local      => [1,1,1,2,2],
+        CareerLevel.Zonal      => [1,1,2,2,2],
+        CareerLevel.GrandSwiss => [2,2,3,3,3],
+        CareerLevel.GrandPrix  => [3,3,3,3,3],
+        _                      => [2,2,3,3,3]
     };
 
-    private static string[] GetPlayerNames(CareerLevel level) =>
-        level == CareerLevel.Candidatos ? CandidatosNames : Letters;
+    private static string[] GetPlayerNames(CareerLevel level) => Letters;
 
     private static int GetAdvancementSpots(CareerLevel level) => level switch
     {
@@ -78,6 +92,25 @@ public class CareerService
         };
     }
 
+    public CareerTournamentState CreateCandidatosTournament()
+    {
+        var players = CandidatosLineup
+            .Select(p => new CareerPlayer { Name = p.Name, Difficulty = p.Difficulty, QualifiedVia = p.Label })
+            .ToList();
+
+        players.Add(new CareerPlayer { Name = "Você", IsHuman = true, Difficulty = 3, QualifiedVia = "Sua campanha" });
+
+        return new CareerTournamentState
+        {
+            Level            = CareerLevel.Candidatos,
+            Format           = CareerFormat.Swiss,
+            TotalRounds      = players.Count - 1,
+            CurrentRound     = 1,
+            AdvancementSpots = GetAdvancementSpots(CareerLevel.Candidatos),
+            Players          = players
+        };
+    }
+
     public CareerTournamentState CreateCopaMundo()
     {
         var set = CopaOpponentNames[Random.Shared.Next(CopaOpponentNames.Length)];
@@ -91,9 +124,9 @@ public class CareerService
             Players      =
             [
                 new CareerPlayer { Name = "Você",   IsHuman = true },
-                new CareerPlayer { Name = set[0], Difficulty = 3, Points = 0  },
-                new CareerPlayer { Name = set[1], Difficulty = 4, Points = -1 },
-                new CareerPlayer { Name = set[2], Difficulty = 4, Points = -1 }
+                new CareerPlayer { Name = set[0], Difficulty = 2, Points = 0  },
+                new CareerPlayer { Name = set[1], Difficulty = 2, Points = -1 },
+                new CareerPlayer { Name = set[2], Difficulty = 3, Points = -1 }
             ]
         };
     }
@@ -109,8 +142,8 @@ public class CareerService
             WinsNeeded   = 3,
             Players      =
             [
-                new CareerPlayer { Name = "Você",   IsHuman = true, Difficulty = 5 },
-                new CareerPlayer { Name = "Magnus",  Difficulty = 5 }
+                new CareerPlayer { Name = "Você",   IsHuman = true, Difficulty = 4 },
+                new CareerPlayer { Name = "Magnus",  Difficulty = 4 }
             ]
         };
     }
@@ -127,7 +160,7 @@ public class CareerService
         }
         if (t.Format == CareerFormat.BestOfN)
             return t.Players.FirstOrDefault(p => !p.IsHuman)
-                ?? new CareerPlayer { Name = "Magnus", Difficulty = 5 };
+                ?? new CareerPlayer { Name = "Magnus", Difficulty = 4 };
 
         double pts    = t.Human.Points;
         var    faced  = t.Rounds.Select(r => r.Opponent).ToHashSet();
@@ -164,13 +197,35 @@ public class CareerService
         return (true, GetNextOpponent(t));
     }
 
-    public static int GetAIDepth(int diff)     => diff switch { 1 or 2 => 1, 3 or 4 => 3, _ => 5 };
-    public static int GetTimeMinutes(int diff) => diff switch { 1 or 2 => 15, 3 or 4 => 10, _ => 5 };
+    // Nome de verdade do título (Bicampeão, Tricampeão...), em vez de um genérico
+    // "Nx Campeão" — vocabulário real do esporte/xadrez pra isso.
+    public static string ChampionTitleName(int titles) => titles switch
+    {
+        1 => "Campeão Mundial",
+        2 => "Bicampeão Mundial",
+        3 => "Tricampeão Mundial",
+        4 => "Tetracampeão Mundial",
+        5 => "Pentacampeão Mundial",
+        6 => "Hexacampeão Mundial",
+        7 => "Heptacampeão Mundial",
+        _ => $"{titles}× Campeão Mundial"
+    };
+
+    // Força real da IA (Skill Level do Stockfish, 0-20) — por ADVERSÁRIO, não por tempo de
+    // busca nem por fase inteira. Fácil/Médio/Difícil/Hard é o mesmo conceito de dificuldade
+    // já usado no modo casual, só que em 4 degraus em vez de 3 — Hard fica reservado pro
+    // Campeonato Mundial (ver GetDiffs).
+    public static int GetSkillLevel(int diff) => diff switch
+    {
+        1 => 3,   // Fácil
+        2 => 10,  // Médio
+        3 => 16,  // Difícil
+        _ => 20   // Hard
+    };
 
     public string DiffLabel(int diff) => diff switch
     {
-        1 => "Iniciante", 2 => "Básico", 3 => "Intermediário",
-        4 => "Avançado",  _ => "Mestre"
+        1 => "Fácil", 2 => "Médio", 3 => "Difícil", _ => "Hard"
     };
 
     // ── Recording ─────────────────────────────────────────────────────────────
@@ -220,20 +275,57 @@ public class CareerService
         }
     }
 
+    // Cada rodada (Oitavas/Semi/Final) é uma mini-partida de melhor-de-2 — se empatar 1-1
+    // nos 2 jogos, decide num desempate (jogo 3). Mais fiel à Copa do Mundo FIDE real (que
+    // usa mini-match com rápidas/blitz de desempate) e menos brutal que "perdeu 1 jogo, saiu".
     private static void RecordEliminationRound(CareerTournamentState t, string opponentName, CareerRoundResult result)
     {
         var opp = t.Players.FirstOrDefault(p => p.Name == opponentName)
                ?? new CareerPlayer { Name = opponentName, Difficulty = 3 };
 
+        bool isTiebreak = t.MiniMatchGame >= 3;
+
+        if (isTiebreak)
+        {
+            // Desempate decisivo: só vitória avança, sem margem pra empate (tipo Armageddon)
+            bool wonTiebreak = result == CareerRoundResult.Win;
+            FinishMiniMatch(t, opp, opponentName, wonTiebreak);
+            return;
+        }
+
+        double myScore = result == CareerRoundResult.Win  ? 1.0
+                       : result == CareerRoundResult.Draw ? 0.5 : 0.0;
+        t.MiniMatchMyScore  += myScore;
+        t.MiniMatchOppScore += 1.0 - myScore;
+
+        if (t.MiniMatchGame == 1)
+        {
+            // Sempre segue pro 2º jogo da mini-partida
+            t.MiniMatchGame = 2;
+            return;
+        }
+
+        // 2º jogo jogado — decide a mini-partida
+        if (t.MiniMatchMyScore > t.MiniMatchOppScore)      FinishMiniMatch(t, opp, opponentName, won: true);
+        else if (t.MiniMatchMyScore < t.MiniMatchOppScore) FinishMiniMatch(t, opp, opponentName, won: false);
+        else t.MiniMatchGame = 3; // 1-1 — vai pro desempate
+    }
+
+    private static void FinishMiniMatch(CareerTournamentState t, CareerPlayer opp, string opponentName, bool won)
+    {
         t.Rounds.Add(new CareerRound
         {
             Number = t.CurrentRound, Opponent = opponentName,
-            Difficulty = opp.Difficulty, Result = result
+            Difficulty = opp.Difficulty, Result = won ? CareerRoundResult.Win : CareerRoundResult.Loss
         });
 
-        if (result == CareerRoundResult.Loss || result == CareerRoundResult.Draw)
+        // Reseta o placar da mini-partida pra próxima rodada
+        t.MiniMatchGame      = 1;
+        t.MiniMatchMyScore   = 0;
+        t.MiniMatchOppScore  = 0;
+
+        if (!won)
         {
-            // Draw in elimination = loss for simplicity
             t.IsCompleted = true;
             t.Outcome     = CareerStageOutcome.Eliminated;
             return;
@@ -257,7 +349,7 @@ public class CareerService
     private static void RecordBestOfNRound(CareerTournamentState t, CareerRoundResult result)
     {
         var opp = t.Players.FirstOrDefault(p => !p.IsHuman)
-               ?? new CareerPlayer { Name = "Magnus", Difficulty = 5 };
+               ?? new CareerPlayer { Name = "Magnus", Difficulty = 4 };
 
         if (result == CareerRoundResult.Win)       t.HumanWins++;
         else if (result == CareerRoundResult.Loss) t.HumanLosses++;
@@ -375,7 +467,7 @@ public class CareerService
                 if (outcome == CareerStageOutcome.AdvancedDirect)
                 {
                     p.CurrentLevel     = CareerLevel.Candidatos;
-                    p.ActiveTournament = CreateSwissTournament(CareerLevel.Candidatos);
+                    p.ActiveTournament = CreateCandidatosTournament();
                 }
                 else
                 {
@@ -388,7 +480,7 @@ public class CareerService
                 if (outcome == CareerStageOutcome.Advanced)
                 {
                     p.CurrentLevel     = CareerLevel.Candidatos;
-                    p.ActiveTournament = CreateSwissTournament(CareerLevel.Candidatos);
+                    p.ActiveTournament = CreateCandidatosTournament();
                 }
                 else
                 {
@@ -401,7 +493,7 @@ public class CareerService
                 if (outcome == CareerStageOutcome.Advanced)
                 {
                     p.CurrentLevel     = CareerLevel.Candidatos;
-                    p.ActiveTournament = CreateSwissTournament(CareerLevel.Candidatos);
+                    p.ActiveTournament = CreateCandidatosTournament();
                 }
                 else
                 {
@@ -433,7 +525,7 @@ public class CareerService
                 else
                 {
                     p.CurrentLevel     = CareerLevel.Candidatos;
-                    p.ActiveTournament = CreateSwissTournament(CareerLevel.Candidatos);
+                    p.ActiveTournament = CreateCandidatosTournament();
                 }
                 break;
         }

@@ -13,31 +13,37 @@
 
                 <!-- Exibição do avatar -->
                 <Border x:Name="AvatarBorder"
-                        BackgroundColor="#111D32" Stroke="#2A4070" StrokeThickness="2"
+                        BackgroundColor="#FFFFFF" Stroke="#2A4070" StrokeThickness="2"
                         StrokeShape="RoundRectangle 50"
                         WidthRequest="100" HeightRequest="100"
                         HorizontalOptions="Center">
                     <Grid>
                         <Label x:Name="AvatarLabel" Text="♟" FontSize="46"
+                               TextColor="#C8A020"
                                HorizontalOptions="Center" VerticalOptions="Center"/>
                         <Image x:Name="AvatarImage" IsVisible="False"
-                               Aspect="AspectFill"
+                               Aspect="AspectFit"
                                WidthRequest="100" HeightRequest="100"/>
                     </Grid>
                 </Border>
 
                 <!-- Botões de avatar -->
-                <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                    <Button Text="♟ Escolher emoji"
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                    <Button Text="♟ Emoji"
                             Clicked="OnPickEmojiClicked"
                             BackgroundColor="#1A3A65" TextColor="#5A8AD0"
                             FontSize="12" CornerRadius="8"
-                            HeightRequest="36" Padding="14,0"/>
-                    <Button Text="📷 Usar foto"
+                            HeightRequest="36" Padding="12,0"/>
+                    <Button Text="🖼 Galeria"
                             Clicked="OnPickPhotoClicked"
                             BackgroundColor="#1A3A65" TextColor="#5A8AD0"
                             FontSize="12" CornerRadius="8"
-                            HeightRequest="36" Padding="14,0"/>
+                            HeightRequest="36" Padding="12,0"/>
+                    <Button x:Name="TakePhotoBtn" Text="📷 Câmera"
+                            Clicked="OnTakePhotoClicked"
+                            BackgroundColor="#1A3A65" TextColor="#5A8AD0"
+                            FontSize="12" CornerRadius="8"
+                            HeightRequest="36" Padding="12,0"/>
                 </HorizontalStackLayout>
 
                 <Label x:Name="AvatarHint" Text="Avatar opcional"

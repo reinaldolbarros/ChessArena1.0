@@ -15,12 +15,14 @@ public partial class ProfilePage : ContentPage
         InitializeComponent();
         CountryPicker.ItemsSource = GeoData.Countries.ToList();
         StatePicker.ItemsSource   = GeoData.BrazilStates.ToList();
+        TakePhotoBtn.IsVisible    = MediaPicker.Default.IsCaptureSupported;
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
         var p = AppState.Current.Profile;
+        p.EnsureCountryDefault();
 
         NameEntry.Text = p.Name;
 
@@ -78,17 +80,7 @@ public partial class ProfilePage : ContentPage
             {
                 Title = "Escolha uma foto"
             });
-
-            if (result == null) return;
-
-            var destPath = Path.Combine(FileSystem.AppDataDirectory, "avatar_photo.jpg");
-
-            using var src  = await result.OpenReadAsync();
-            using var dest = File.OpenWrite(destPath);
-            await src.CopyToAsync(dest);
-
-            _pendingAvatarPath = destPath;
-            RefreshAvatarDisplay();
+            await SaveAvatarPhotoAsync(result);
         }
         catch (PermissionException)
         {
@@ -99,6 +91,41 @@ public partial class ProfilePage : ContentPage
         {
             await DisplayAlert("Erro", $"Não foi possível carregar a foto: {ex.Message}", "OK");
         }
+    }
+
+    private async void OnTakePhotoClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var result = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
+            {
+                Title = "Tire uma foto"
+            });
+            await SaveAvatarPhotoAsync(result);
+        }
+        catch (PermissionException)
+        {
+            await DisplayAlert("Permissão necessária",
+                "Permita o acesso à câmera nas configurações do dispositivo.", "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Erro", $"Não foi possível usar a câmera: {ex.Message}", "OK");
+        }
+    }
+
+    private async Task SaveAvatarPhotoAsync(FileResult? result)
+    {
+        if (result == null) return;
+
+        var destPath = Path.Combine(FileSystem.AppDataDirectory, "avatar_photo.jpg");
+
+        using var src  = await result.OpenReadAsync();
+        using var dest = File.OpenWrite(destPath);
+        await src.CopyToAsync(dest);
+
+        _pendingAvatarPath = destPath;
+        RefreshAvatarDisplay();
     }
 
     private async void OnSaveClicked(object? sender, EventArgs e)

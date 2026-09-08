@@ -179,6 +179,15 @@ public class ProfileService
 
     public bool IsNew => string.IsNullOrWhiteSpace(Name);
 
+    /// <summary>Se o país ainda não foi definido, sugere um valor a partir da região do
+    /// aparelho (sem pedir permissão nenhuma). O usuário pode corrigir depois no Perfil.</summary>
+    public void EnsureCountryDefault()
+    {
+        if (!string.IsNullOrEmpty(Country)) return;
+        var suggested = GeoData.SuggestCountryFromDevice();
+        if (suggested != null) Country = suggested;
+    }
+
     public void RecordWin()  => Wins++;
     public void RecordLoss() => Losses++;
 
