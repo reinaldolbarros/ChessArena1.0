@@ -482,60 +482,38 @@
                 <!-- Configuração de dificuldade -->
                 <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
                         StrokeShape="RoundRectangle 10" Padding="14,10">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label x:Name="DiffLabel" Text="🤖  IA: Fácil"
-                               TextColor="#8AADCC" FontSize="15"
-                               VerticalOptions="Center"/>
-                        <Button Grid.Column="1" Text="⚙ Alterar"
-                                Clicked="OnDiffSettingsClicked"
-                                BackgroundColor="#1A2840" TextColor="#A0B0C0"
-                                FontSize="15" CornerRadius="8"
-                                Padding="10,0" HeightRequest="34"/>
-                    </Grid>
+                    <Label x:Name="DiffLabel" Text="Dificuldade: Fácil"
+                           TextColor="#4AA3FF" FontAttributes="Bold" FontSize="15"
+                           VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDiffSettingsClicked"/>
+                        </Label.GestureRecognizers>
+                    </Label>
                 </Border>
 
-                <!-- Seleção de tempo -->
+                <!-- Seleção de tempo — mesmo estilo de contador do Jogar Online, até 30 min -->
                 <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
                         StrokeShape="RoundRectangle 10" Padding="14,10">
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="⏱  Tempo" TextColor="#8AADCC" FontSize="15"/>
-                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
-                            <Border x:Name="TimeBtn0"
-                                    BackgroundColor="#2A4A3A" Stroke="#2A6A4A" StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 8" Padding="0,10">
-                                <Label Text="∞" FontSize="17" FontAttributes="Bold"
-                                       TextColor="#AAD8B0" HorizontalTextAlignment="Center"/>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnTime0Tapped"/>
-                                </Border.GestureRecognizers>
-                            </Border>
-                            <Border Grid.Column="1" x:Name="TimeBtn3"
-                                    BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 8" Padding="0,10">
-                                <Label Text="3'" FontSize="17" FontAttributes="Bold"
-                                       TextColor="#8AADCC" HorizontalTextAlignment="Center"/>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnTime3Tapped"/>
-                                </Border.GestureRecognizers>
-                            </Border>
-                            <Border Grid.Column="2" x:Name="TimeBtn5"
-                                    BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 8" Padding="0,10">
-                                <Label Text="5'" FontSize="17" FontAttributes="Bold"
-                                       TextColor="#8AADCC" HorizontalTextAlignment="Center"/>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnTime5Tapped"/>
-                                </Border.GestureRecognizers>
-                            </Border>
-                            <Border Grid.Column="3" x:Name="TimeBtn10"
-                                    BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 8" Padding="0,10">
-                                <Label Text="10'" FontSize="17" FontAttributes="Bold"
-                                       TextColor="#8AADCC" HorizontalTextAlignment="Center"/>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnTime10Tapped"/>
-                                </Border.GestureRecognizers>
-                            </Border>
+                        <Label Text="⏱  Tempo por jogador" TextColor="#8AADCC" FontSize="15"/>
+                        <Grid ColumnDefinitions="48,*,48" VerticalOptions="Center">
+                            <Button Text="−" x:Name="TimeBtnDecrease"
+                                    Clicked="OnTimeDecrease"
+                                    BackgroundColor="#1A2840" TextColor="White"
+                                    FontSize="22" FontAttributes="Bold"
+                                    CornerRadius="21"
+                                    WidthRequest="42" HeightRequest="42"
+                                    HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Grid.Column="1" x:Name="TimeValueLabel" Text="Sem relógio"
+                                   TextColor="#F2F5F8" FontSize="19" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+                            <Button Grid.Column="2" Text="+" x:Name="TimeBtnIncrease"
+                                    Clicked="OnTimeIncrease"
+                                    BackgroundColor="#1A2840" TextColor="White"
+                                    FontSize="22" FontAttributes="Bold"
+                                    CornerRadius="21"
+                                    WidthRequest="42" HeightRequest="42"
+                                    HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>

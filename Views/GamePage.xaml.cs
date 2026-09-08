@@ -619,33 +619,26 @@ public partial class GamePage : ContentPage
     {
         _selectedDiff = idx;
         Preferences.Default.Set("AiDifficulty", idx);
-        DiffLabel.Text = $"🤖  IA: {DiffLabels[idx]}";
+        DiffLabel.Text = $"Dificuldade: {DiffLabels[idx]}";
     }
+
+    // 0 = sem relógio; até 30 min, mesmo teto do Jogar Online (ver RandomMatchPage).
+    private const int MinCasualTime = 0;
+    private const int MaxCasualTime = 30;
 
     private void SelectTime(int minutes)
     {
-        _selectedTimeMinutes = minutes;
-        Preferences.Default.Set("GameTimeMinutes", minutes);
-        var active        = Color.FromArgb("#2A4A3A");
-        var inactive      = Color.FromArgb("#0D1828");
-        var activeBorder  = Color.FromArgb("#2A6A4A");
-        var inactiveBorder = Color.FromArgb("#1A2840");
-        TimeBtn0.BackgroundColor  = minutes == 0  ? active : inactive;
-        TimeBtn3.BackgroundColor  = minutes == 3  ? active : inactive;
-        TimeBtn5.BackgroundColor  = minutes == 5  ? active : inactive;
-        TimeBtn10.BackgroundColor = minutes == 10 ? active : inactive;
-        TimeBtn0.Stroke  = minutes == 0  ? activeBorder : inactiveBorder;
-        TimeBtn3.Stroke  = minutes == 3  ? activeBorder : inactiveBorder;
-        TimeBtn5.Stroke  = minutes == 5  ? activeBorder : inactiveBorder;
-        TimeBtn10.Stroke = minutes == 10 ? activeBorder : inactiveBorder;
+        _selectedTimeMinutes = Math.Clamp(minutes, MinCasualTime, MaxCasualTime);
+        Preferences.Default.Set("GameTimeMinutes", _selectedTimeMinutes);
+        TimeValueLabel.Text      = _selectedTimeMinutes == 0 ? "Sem relógio" : $"{_selectedTimeMinutes} min";
+        TimeBtnDecrease.IsEnabled = _selectedTimeMinutes > MinCasualTime;
+        TimeBtnIncrease.IsEnabled = _selectedTimeMinutes < MaxCasualTime;
     }
 
-    private void OnTime0Tapped(object?  sender, TappedEventArgs e) => SelectTime(0);
-    private void OnTime3Tapped(object?  sender, TappedEventArgs e) => SelectTime(3);
-    private void OnTime5Tapped(object?  sender, TappedEventArgs e) => SelectTime(5);
-    private void OnTime10Tapped(object? sender, TappedEventArgs e) => SelectTime(10);
+    private void OnTimeDecrease(object? sender, EventArgs e) => SelectTime(_selectedTimeMinutes - 1);
+    private void OnTimeIncrease(object? sender, EventArgs e) => SelectTime(_selectedTimeMinutes + 1);
 
-    private void OnDiffSettingsClicked(object? sender, EventArgs e)
+    private void OnDiffSettingsClicked(object? sender, TappedEventArgs e)
     {
         DiffOverlay.IsVisible  = true;
         DiffDropdown.IsVisible = true;

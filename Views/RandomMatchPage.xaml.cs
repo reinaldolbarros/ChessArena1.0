@@ -6,7 +6,7 @@ public partial class RandomMatchPage : ContentPage
 {
     private const string PrefKey = "online_time_minutes";
     private const int MinTime    = 1;
-    private const int MaxTime    = 20;
+    private const int MaxTime    = 30;
 
     private readonly OnlineMatchService    _svc;
     private CancellationTokenSource?      _countdownCts;
