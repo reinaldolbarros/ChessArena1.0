@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using ChessMAUI.Services;
 using ChessMAUI.ViewModels;
+using Microsoft.Maui.Graphics.Platform;
 
 namespace ChessMAUI.Views;
 
@@ -18,6 +20,87 @@ public class BoardDrawable : IDrawable
     private const float  KingScale       = 1.20f;
     private const string WhitePawnSymbol = "♙";
     private const string BlackPawnSymbol = "♟";
+
+    // ── Imagens das peças (arte customizada) ─────────────────────────────────
+    private static readonly ConcurrentDictionary<string, Microsoft.Maui.Graphics.IImage> PieceImages = new();
+    private static readonly string[] PieceCodes =
+        { "wk", "wq", "wr", "wb", "wn", "wp", "bk", "bq", "br", "bb", "bn", "bp" };
+    private static Task? _loadTask;
+
+    public static Task EnsureImagesLoadedAsync() => _loadTask ??= LoadImagesAsync();
+
+    private static async Task LoadImagesAsync()
+    {
+        // 1) Lê os bytes de cada arquivo (I/O simples, tanto faz a thread).
+        var buffers = new Dictionary<string, byte[]>();
+        foreach (var code in PieceCodes)
+        {
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync($"pieces/piece_{code}.png");
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                buffers[code] = ms.ToArray();
+            }
+            catch
+            {
+                // Sem imagem para esta peça: cai no desenho por símbolo Unicode.
+            }
+        }
+
+        // 2) Cria todos os bitmaps (Win2D CanvasBitmap no Windows) em UM ÚNICO
+        // despacho para a thread de UI. Criar cada imagem em um "await
+        // MainThread..." separado devolve o controle à fila de mensagens entre
+        // uma peça e outra — se um evento de maximizar a janela for processado
+        // nesse intervalo, ocorre uma falha nativa (reentrância no Win2D/WinUI).
+        // Fazendo tudo de uma vez, sem ceder o controle no meio, evitamos essa janela.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            foreach (var (code, bytes) in buffers)
+            {
+                try
+                {
+                    using var ms = new MemoryStream(bytes);
+                    PieceImages[code] = PlatformImage.FromStream(ms);
+                }
+                catch
+                {
+                    // Sem imagem para esta peça: cai no desenho por símbolo Unicode.
+                }
+            }
+        });
+    }
+
+    private static string? PieceImageCode(SquareViewModel sq)
+    {
+        char t = sq.PieceSymbol switch
+        {
+            "♚" => 'k',
+            "♛" => 'q',
+            "♜" => 'r',
+            "♝" => 'b',
+            "♞" => 'n',
+            "♟" => 'p',
+            _   => '\0'
+        };
+        if (t == '\0' || sq.PieceIsWhite == null) return null;
+        return $"{(sq.PieceIsWhite == true ? 'w' : 'b')}{t}";
+    }
+
+    // Altura-alvo de cada tipo de peça, como fração da altura da casa. Rei,
+    // rainha, torre, bispo e cavalo dividem a mesma altura (mesmo "porte
+    // físico") — só o peão é menor, como num jogo de xadrez real. Os recortes
+    // de origem vieram de artes diferentes e não guardam essa proporção entre
+    // si sozinhos.
+    private static readonly Dictionary<char, float> PieceHeightFrac = new()
+    {
+        ['k'] = 0.94f,
+        ['q'] = 0.94f,
+        ['r'] = 0.84f,
+        ['b'] = 0.94f,
+        ['n'] = 0.94f,
+        ['p'] = 0.80f,
+    };
 
     public void Draw(ICanvas canvas, RectF bounds)
     {
@@ -73,6 +156,45 @@ public class BoardDrawable : IDrawable
 
             // ── Peça ──────────────────────────────────────────────────
             if (string.IsNullOrEmpty(sq.PieceSymbol)) continue;
+
+            string? imgCode = PieceImageCode(sq);
+            if (imgCode != null && PieceImages.TryGetValue(imgCode, out var pieceImg))
+            {
+                char  type       = imgCode[1];
+                float heightFrac = PieceHeightFrac.TryGetValue(type, out var hf) ? hf : 0.7f;
+                float aspect     = pieceImg.Width / (float)pieceImg.Height;
+
+                float dh = ch * heightFrac;
+                float dw = dh * aspect;
+
+                float maxW = cw * 0.96f;
+                if (dw > maxW)
+                {
+                    float shrink = maxW / dw;
+                    dw *= shrink;
+                    dh *= shrink;
+                }
+
+                if (type == 'k')
+                    dw *= 1.16f;   // rei um pouco mais largo pro "porte" da coroa
+
+                // Centralizada na horizontal; na vertical, todas as peças assentam
+                // na mesma "linha do chão" perto da base da casa — centralizar
+                // pelo meio faz peças de alturas diferentes (rei x peão) parecerem
+                // flutuando em posições diferentes, o que lia como desalinhado.
+                float dx        = x + (cw - dw) / 2f;
+                float baselineY = y + ch * 0.95f;
+                float dy        = baselineY - dh;
+                canvas.DrawImage(pieceImg, dx, dy, dw, dh);
+
+                if (sq.IsValidMove)
+                {
+                    canvas.StrokeColor = Color.FromArgb("#9028A745");
+                    canvas.StrokeSize  = cw * 0.09f;
+                    canvas.DrawCircle(x + cw * 0.5f, y + ch * 0.5f, cw * 0.42f);
+                }
+                continue;
+            }
 
             bool  isWhite       = sq.PieceIsWhite == true;
             bool  isKing        = sq.PieceSymbol == KingSymbol;

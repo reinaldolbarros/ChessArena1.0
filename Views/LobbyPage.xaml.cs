@@ -171,6 +171,80 @@ public partial class LobbyPage : ContentPage
 
         // Liga — COMENTADO: aguardando base de jogadores
         // BuildMiniRanking();
+
+        await BuildRankingPreviewAsync();
+    }
+
+    // -----------------------------------------------------------------------
+    // Topo do ranking
+    // -----------------------------------------------------------------------
+    private async void OnRankingSeeAllTapped(object? sender, TappedEventArgs e)
+        => await Shell.Current.GoToAsync("//RankingPage");
+
+    private async Task BuildRankingPreviewAsync()
+    {
+        RankingPreviewList.Children.Clear();
+
+        var profile = AppState.Current.Profile;
+        var entries = await AppState.Current.Ranking.GetGlobalAsync(profile);
+
+        var top3 = entries.Take(3).ToList();
+        foreach (var entry in top3)
+            RankingPreviewList.Children.Add(BuildRankingPreviewRow(entry));
+
+        var me = entries.FirstOrDefault(x => x.IsHuman);
+        if (me != null && !top3.Contains(me))
+        {
+            RankingPreviewList.Children.Add(new BoxView
+            {
+                HeightRequest   = 1,
+                BackgroundColor = Color.FromArgb("#1A2535"),
+                Margin          = new Thickness(0, 2)
+            });
+            RankingPreviewList.Children.Add(BuildRankingPreviewRow(me));
+        }
+    }
+
+    private static Grid BuildRankingPreviewRow(RankingEntry entry)
+    {
+        var row = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(28), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            Padding           = new Thickness(2, 3)
+        };
+
+        row.Add(new Label
+        {
+            Text                    = entry.PositionLabel,
+            FontSize                = 13,
+            TextColor               = Colors.White,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalOptions         = LayoutOptions.Center
+        });
+
+        var nameLabel = new Label
+        {
+            Text            = entry.Name,
+            FontSize        = 13,
+            TextColor       = entry.NameColor,
+            FontAttributes  = entry.IsHuman ? FontAttributes.Bold : FontAttributes.None,
+            VerticalOptions = LayoutOptions.Center,
+            LineBreakMode   = LineBreakMode.TailTruncation
+        };
+        Grid.SetColumn(nameLabel, 1);
+        row.Add(nameLabel);
+
+        var pointsLabel = new Label
+        {
+            Text            = $"{entry.Points:N0}",
+            FontSize        = 12,
+            TextColor       = Color.FromArgb("#8AAAC8"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        Grid.SetColumn(pointsLabel, 2);
+        row.Add(pointsLabel);
+
+        return row;
     }
 
     // -----------------------------------------------------------------------

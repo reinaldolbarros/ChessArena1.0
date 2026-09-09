@@ -105,7 +105,7 @@
                                    FontSize="13" TextColor="#A0B8D8"
                                    LineBreakMode="WordWrap"/>
 
-                            <!-- Botão Jogar Agora -->
+                            <!-- Botão Buscar Oponente -->
                             <Border StrokeShape="RoundRectangle 12"
                                     Margin="0,12,16,0" Padding="0,13"
                                     VerticalOptions="EndAndExpand">
@@ -118,7 +118,7 @@
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnOnlineCardTapped"/>
                                 </Border.GestureRecognizers>
-                                <Label Text="Jogar Agora"
+                                <Label Text="Buscar Oponente"
                                        FontSize="15" FontAttributes="Bold" TextColor="#FFFFFF"
                                        HorizontalTextAlignment="Center"/>
                             </Border>
@@ -356,6 +356,32 @@
                         </VerticalStackLayout>
                         ════ -->
                     </Grid>
+                </Border>
+
+                <!-- ════ TOPO DO RANKING ════ -->
+                <Border StrokeShape="RoundRectangle 14"
+                        StrokeThickness="1" Stroke="#1A2535"
+                        Padding="14,12">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#0D1C28" Offset="0"/>
+                            <GradientStop Color="#081218" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Topo do ranking"
+                                   FontSize="14" FontAttributes="Bold" TextColor="#FFFFFF"/>
+                            <Label Grid.Column="1" Text="Ver completo ›"
+                                   FontSize="12" TextColor="#4AA3FF">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnRankingSeeAllTapped"/>
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </Grid>
+
+                        <VerticalStackLayout x:Name="RankingPreviewList" Spacing="4"/>
+                    </VerticalStackLayout>
                 </Border>
 
             </VerticalStackLayout>

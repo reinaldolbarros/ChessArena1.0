@@ -47,6 +47,12 @@ public partial class GamePage : ContentPage
         base.OnAppearing();
         AdminBar.IsVisible = AppState.Current.IsAdminMode;
 
+        // Carrega as imagens das peças já com o GraphicsView anexado à tela
+        // (evita criar o bitmap Win2D antes de existir um CanvasControl ativo,
+        // o que causava um fail-fast nativo mais tarde, ao maximizar a janela).
+        _ = BoardDrawable.EnsureImagesLoadedAsync()
+            .ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => BoardView.Invalidate()));
+
         SelectDiff(_selectedDiff);
         SelectTime(_selectedTimeMinutes);
 
