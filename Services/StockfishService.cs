@@ -151,24 +151,27 @@ public sealed class StockfishService : IAsyncDisposable
         }
     }
 
-    // ── Top-N moves (variedade de abertura) ────────────────────────────────────
+    // ── Top-N moves (variedade de abertura / seleção por personalidade) ─────────
     /// <summary>
-    /// Retorna até <paramref name="multiPv"/> candidatos, sempre em força máxima (Skill Level 20),
-    /// ordenados do melhor para o pior. Usado só para dar variedade nas primeiras jogadas — nunca
-    /// para enfraquecer a IA, já que todos os candidatos vêm da própria busca em força total.
+    /// Retorna até <paramref name="multiPv"/> candidatos, ordenados do melhor para o pior.
+    /// Por padrão em força máxima (Skill Level 20) — usado assim para dar variedade nas
+    /// primeiras jogadas, nunca para enfraquecer a IA. Quando chamado com um
+    /// <paramref name="skillLevel"/> explícito (seleção de lance por personalidade), os
+    /// candidatos refletem a força real configurada para aquele jogo.
     /// </summary>
     public async Task<List<(string Move, int ScoreCp, bool IsMate)>> GetTopMovesAsync(
         IReadOnlyList<string> uciMoves,
         int                   moveTimeMs,
         int                   multiPv,
-        CancellationToken     ct)
+        CancellationToken     ct,
+        int                   skillLevel = 20)
     {
         if (!IsAvailable) return [];
 
         await _sem.WaitAsync(ct);
         try
         {
-            await _stdin!.WriteLineAsync("setoption name Skill Level value 20");
+            await _stdin!.WriteLineAsync($"setoption name Skill Level value {skillLevel}");
             await _stdin.WriteLineAsync($"setoption name MultiPV value {multiPv}");
 
             string posCmd = uciMoves.Count > 0

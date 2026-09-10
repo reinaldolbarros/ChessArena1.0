@@ -139,6 +139,8 @@ public class GameViewModel : INotifyPropertyChanged
     private int                      _sfSkillLevel   = 20;
     private int                      _sfMoveTimeMs   = 1000;
     private int                      _aiDepthLevel   = 3; // 1=Fácil, 3=Médio, 5=Difícil — só controla profundidade/tempo
+    private BotPersonality           _aiPersonality  = BotPersonality.Balanced;
+    private readonly Random          _personalityRng = new();
 
     // --- Peças capturadas e lista de lances ---
     private readonly List<ChessPiece> _capturedByWhite = []; // peças pretas capturadas pelo jogador
@@ -285,10 +287,10 @@ public class GameViewModel : INotifyPropertyChanged
     // ----------------------------------------------------------------
     // Modo torneio — chamado pela GamePage quando IsInTournamentMatch
     // ----------------------------------------------------------------
-    public void StartTournamentGame(string opponentName, int minutes, int aiDepth, int? skillLevel = null)
+    public void StartTournamentGame(string opponentName, int minutes, int aiDepth, int? skillLevel = null, BotPersonality personality = BotPersonality.Balanced)
     {
         TournamentOpponent = opponentName;
-        StartNewGame(minutes, aiDepth, isTournament: true, skillLevel: skillLevel);
+        StartNewGame(minutes, aiDepth, isTournament: true, skillLevel: skillLevel, personality: personality);
     }
 
     public void StartFriendGame(string white, string black, int minutes)
@@ -325,6 +327,37 @@ public class GameViewModel : INotifyPropertyChanged
         return move;
     }
 
+    // Usado só pela seleção de lance por personalidade (ver PersonalityMoveSelector) — diz se
+    // um candidato do Stockfish é uma captura na posição atual, pra dar preferência a lances
+    // "com a cara" de um bot Agressivo/Sólido.
+    private bool IsCaptureUci(string uci)
+    {
+        var m = UciToMove(_board, uci);
+        return m != null && (m.IsEnPassant || _board.GetPiece(m.ToRow, m.ToCol) != null);
+    }
+
+    // Conta quantas peças brancas ficam ameaçadas (atacadas por uma peça preta) depois de
+    // jogar esse candidato — proxy simples de "quão ameaçador" o lance é, usado só pelo
+    // Agressivo. Simula a jogada num clone do tabuleiro; não afeta a partida real.
+    private int CountThreatsUci(string uci)
+    {
+        var m = UciToMove(_board, uci);
+        if (m == null) return 0;
+
+        var clone = _board.Clone();
+        ChessEngine.ApplyMove(clone, m);
+
+        int threats = 0;
+        for (int r = 0; r < 8; r++)
+        for (int c = 0; c < 8; c++)
+        {
+            var p = clone.GetPiece(r, c);
+            if (p != null && p.Color == PieceColor.White && ChessEngine.IsSquareAttacked(clone, r, c, PieceColor.Black))
+                threats++;
+        }
+        return threats;
+    }
+
     private static string MoveToUci(ChessMove move)
     {
         var sb = new System.Text.StringBuilder(5);
@@ -346,8 +379,9 @@ public class GameViewModel : INotifyPropertyChanged
     // ----------------------------------------------------------------
     // Novo jogo — chamado pela GamePage após o usuário escolher tempo e dificuldade
     // ----------------------------------------------------------------
-    public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false, int? skillLevel = null)
+    public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false, int? skillLevel = null, BotPersonality personality = BotPersonality.Balanced)
     {
+        _aiPersonality = personality;
         _aiCts?.Cancel();
         _aiCts = null;
         _ai    = new AIService(aiDepth);
@@ -476,7 +510,7 @@ public class GameViewModel : INotifyPropertyChanged
             {
                 _whiteTime = TimeSpan.Zero;
                 NotifyTimerProperties();
-                EndByTimeout(IsFriendMode ? $"Tempo esgotado! {BlackPlayerName} vence!" : IsTournamentMode ? $"Tempo esgotado! {TournamentOpponent} vence!" : "Tempo esgotado! Pretas (IA) vencem!");
+                EndByTimeout();
                 return;
             }
             OnPC(nameof(WhiteTimeDisplay));
@@ -489,7 +523,7 @@ public class GameViewModel : INotifyPropertyChanged
             {
                 _blackTime = TimeSpan.Zero;
                 NotifyTimerProperties();
-                EndByTimeout(IsFriendMode ? $"Tempo esgotado! {WhitePlayerName} vence!" : "Tempo esgotado! Brancas vencem!");
+                EndByTimeout();
                 return;
             }
             OnPC(nameof(BlackTimeDisplay));
@@ -505,20 +539,48 @@ public class GameViewModel : INotifyPropertyChanged
     private void EndByMoveTimeout()
     {
         StopClock();
-        var winner = _board.CurrentTurn == PieceColor.White
-            ? (IsFriendMode ? BlackPlayerName : IsTournamentMode ? TournamentOpponent : "Pretas (IA)")
-            : (IsFriendMode ? WhitePlayerName : "Brancas");
-        StatusMessage = $"Tempo por jogada esgotado! {winner} vence!";
-        if (IsTournamentMode) SetTournamentResult(_board.CurrentTurn != PieceColor.White);
+        bool whiteFlagged  = _board.CurrentTurn == PieceColor.White;
+        var  opponentColor = whiteFlagged ? PieceColor.Black : PieceColor.White;
+
+        if (ChessEngine.SideHasInsufficientMatingMaterial(_board, opponentColor))
+        {
+            StatusMessage = "Tempo por jogada esgotado, mas o adversário não tem material para dar xeque-mate — Empate!";
+            if (IsTournamentMode) SetTournamentResult(false);
+        }
+        else
+        {
+            var winner = whiteFlagged
+                ? (IsFriendMode ? BlackPlayerName : IsTournamentMode ? TournamentOpponent : "Pretas (IA)")
+                : (IsFriendMode ? WhitePlayerName : "Brancas");
+            StatusMessage = $"Tempo por jogada esgotado! {winner} vence!";
+            if (IsTournamentMode) SetTournamentResult(!whiteFlagged);
+        }
         GameOver = true;
         _sound.PlayGameOver();
     }
 
-    private void EndByTimeout(string msg)
+    // Regra 6.9 da FIDE: se a bandeira cai mas o adversário não tem material suficiente pra
+    // dar xeque-mate de jeito nenhum (só o rei, ou rei + 1 peça menor sozinha), é empate em
+    // vez de vitória por tempo — ver ChessEngine.SideHasInsufficientMatingMaterial.
+    private void EndByTimeout()
     {
         StopClock();
-        StatusMessage = msg;
-        if (IsTournamentMode) SetTournamentResult(msg.Contains("Brancas vencem"));
+        bool whiteFlagged   = _board.CurrentTurn == PieceColor.White;
+        var  opponentColor  = whiteFlagged ? PieceColor.Black : PieceColor.White;
+
+        if (ChessEngine.SideHasInsufficientMatingMaterial(_board, opponentColor))
+        {
+            StatusMessage = "Tempo esgotado, mas o adversário não tem material para dar xeque-mate — Empate!";
+            if (IsTournamentMode) SetTournamentResult(false); // mesma convenção de GameState.Draw
+        }
+        else
+        {
+            var winner = whiteFlagged
+                ? (IsFriendMode ? BlackPlayerName : IsTournamentMode ? TournamentOpponent : "Pretas (IA)")
+                : (IsFriendMode ? WhitePlayerName : "Brancas");
+            StatusMessage = $"Tempo esgotado! {winner} vence!";
+            if (IsTournamentMode) SetTournamentResult(!whiteFlagged);
+        }
         GameOver = true;
         _sound.PlayGameOver();
     }
@@ -758,10 +820,27 @@ public class GameViewModel : INotifyPropertyChanged
                     }
                     else uciStr = null;
                 }
-                else
+                else if (_aiPersonality == BotPersonality.Balanced)
                 {
                     (uciStr, isForcedMate) = await sf.GetBestMoveAsync(
                         _uciMoveHistory, sfMoveTime, _sfSkillLevel, _aiCts.Token);
+                }
+                else
+                {
+                    // Estilo de bot: escolhe entre os melhores candidatos (mesma força do
+                    // Skill Level configurado, não força máxima) em vez de sempre o nº 1.
+                    var styled = await sf.GetTopMovesAsync(
+                        _uciMoveHistory, sfMoveTime, 3, _aiCts.Token, _sfSkillLevel);
+                    if (styled.Count > 0)
+                    {
+                        isForcedMate = styled[0].IsMate;
+                        // O bot (IA) sempre joga de Pretas nesse fluxo (ver WhitePlayerName/
+                        // BlackPlayerName logo acima em StartNewGame).
+                        uciStr = PersonalityMoveSelector.Choose(
+                            styled, _aiPersonality, IsCaptureUci, CountThreatsUci,
+                            botPlaysWhite: false, _personalityRng);
+                    }
+                    else uciStr = null;
                 }
 
                 System.Diagnostics.Debug.WriteLine($"[AI] Stockfish returned: {uciStr ?? "null"} mate={isForcedMate}");
@@ -1044,7 +1123,16 @@ public class GameViewModel : INotifyPropertyChanged
                 }
                 else
                 {
-                    StatusMessage = "Afogamento! Empate!";
+                    // Casual contra Bots: mesma regra do Torneio/Amigo — quem afoga o
+                    // adversário vence, em vez de empate (afogamento como derrota "roubada"
+                    // de quem estava perdendo é considerado injusto neste app).
+                    StatusMessage = humanStalemated
+                        ? "Afogamento! Você ficou sem movimentos. Pretas (IA) vencem!"
+                        : "Afogamento! Você afogou a IA. Brancas vencem!";
+                    // Casual não passa por SetTournamentResult (só torneio/online) — sem isso,
+                    // a tela de resultado cairia no fallback frágil de ler o texto da mensagem
+                    // pra saber quem venceu.
+                    HumanWon = !humanStalemated;
                 }
                 GameOver = true;
                 StopClock();

@@ -22,6 +22,16 @@ public partial class GamePage : ContentPage
     private static readonly int[]    DiffDepths  = [1, 3, 5, 5];
     private static readonly string[] DiffLabels  = ["Fácil", "Médio", "Difícil", "Hard"];
 
+    // Estilo do bot (só no modo casual — o Modo Carreira define o estilo por adversário,
+    // ver CareerService.GetPersonality). Sorteado a cada nova configuração de partida
+    // (ver SetupPanel ficando visível); o jogador pode trocar tocando no pill, igual à
+    // Dificuldade.
+    private int _selectedStyle = 0;
+    private static readonly BotPersonality[] StylePersonalities =
+        [BotPersonality.Balanced, BotPersonality.Aggressive, BotPersonality.Solid];
+    private static readonly string[] StyleIcons  = ["⚖", "🔥", "🛡"];
+    private static readonly string[] StyleLabels = ["Clássico", "Agressivo", "Defensivo"];
+
     public GamePage()
     {
         InitializeComponent();
@@ -54,6 +64,7 @@ public partial class GamePage : ContentPage
             .ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => BoardView.Invalidate()));
 
         SelectDiff(_selectedDiff);
+        SelectStyle(Random.Shared.Next(StylePersonalities.Length));
         SelectTime(_selectedTimeMinutes);
 
 
@@ -70,7 +81,8 @@ public partial class GamePage : ContentPage
                 state.CareerOpponentName,
                 state.CareerTimeMinutes,
                 state.CareerAIDepth,
-                state.CareerSkillLevel);
+                state.CareerSkillLevel,
+                state.CareerPersonality);
         }
         else if (state.PendingTournamentGame)
         {
@@ -125,6 +137,7 @@ public partial class GamePage : ContentPage
             ResultPanel.IsVisible = false;
             SetupPanel.IsVisible  = true;
             SelectDiff(_selectedDiff);
+            SelectStyle(Random.Shared.Next(StylePersonalities.Length));
         }
     }
 
@@ -137,7 +150,7 @@ public partial class GamePage : ContentPage
         // Fallback para carreira: captura resultado real mesmo que TournamentGameEnded não tenha disparado
         if (state.IsCareerGame && _vm.GameOver && !state.MatchResultReady)
         {
-            bool isDraw = _vm.StatusMessage.Contains("Empate") || _vm.StatusMessage.Contains("Afogamento");
+            bool isDraw = _vm.StatusMessage.Contains("Empate");
             state.LastMatchHumanWon = _vm.HumanWon == true;
             state.LastMatchWasDraw  = isDraw;
             state.MatchResultReady  = true;
@@ -161,7 +174,7 @@ public partial class GamePage : ContentPage
         int starsEarned = 0;
         starsEarned += state.Daily.RecordGamePlayed();
 
-        bool isDraw = _vm.StatusMessage.Contains("Empate") || _vm.StatusMessage.Contains("Afogamento");
+        bool isDraw = _vm.StatusMessage.Contains("Empate");
         int  eloDelta = 0;
 
         if (state.IsCareerGame)
@@ -281,8 +294,11 @@ public partial class GamePage : ContentPage
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 HandoffPanel.IsVisible = false;
-                bool isDraw   = _vm.StatusMessage.Contains("Empate") || _vm.StatusMessage.Contains("Afogamento");
-                bool whiteWon = _vm.StatusMessage.Contains(_vm.WhitePlayerName) && _vm.StatusMessage.Contains("vence");
+                bool isDraw   = _vm.StatusMessage.Contains("Empate");
+                // Contains(nome) sozinho dava falso positivo no afogamento, que cita os dois
+                // nomes na mesma mensagem — precisa ser "nome" seguido de "vence", não só os
+                // dois em qualquer lugar do texto.
+                bool whiteWon = _vm.StatusMessage.Contains($"{_vm.WhitePlayerName} vence");
                 ApplyResultColors(!isDraw, isDraw);
                 ResultTitle.Text  = isDraw ? "Empate" : whiteWon ? $"{_vm.WhitePlayerName} vence!" : $"{_vm.BlackPlayerName} vence!";
                 ResultDetail.Text = _vm.StatusMessage;
@@ -305,7 +321,7 @@ public partial class GamePage : ContentPage
             var state = AppState.Current;
 
             // Registra W/L e atualiza Elo
-            bool isDraw2 = _vm.StatusMessage.Contains("Empate") || _vm.StatusMessage.Contains("Afogamento");
+            bool isDraw2 = _vm.StatusMessage.Contains("Empate");
             int  starsNow = 0;
             starsNow += state.Daily.RecordGamePlayed();
             if (humanWon)      { state.Profile.RecordWin();  starsNow += state.Daily.RecordWin(); }
@@ -609,6 +625,7 @@ public partial class GamePage : ContentPage
         Title                          = "ChessArena";
         AppState.Current.IsCareerGame  = false;
         SelectDiff(_selectedDiff);
+        SelectStyle(Random.Shared.Next(StylePersonalities.Length));
         SetupPanel.IsVisible           = true;
     }
 
@@ -626,6 +643,12 @@ public partial class GamePage : ContentPage
         _selectedDiff = idx;
         Preferences.Default.Set("AiDifficulty", idx);
         DiffLabel.Text = $"Dificuldade: {DiffLabels[idx]}";
+    }
+
+    private void SelectStyle(int idx)
+    {
+        _selectedStyle = idx;
+        StyleLabel.Text = $"Estilo: {StyleIcons[idx]} {StyleLabels[idx]}";
     }
 
     // 0 = sem relógio; até 30 min, mesmo teto do Jogar Online (ver RandomMatchPage).
@@ -680,6 +703,36 @@ public partial class GamePage : ContentPage
         SelectDiff(3);
     }
 
+    private void OnStyleSettingsClicked(object? sender, TappedEventArgs e)
+    {
+        StyleOverlay.IsVisible  = true;
+        StyleDropdown.IsVisible = true;
+    }
+
+    private void OnStyleOverlayDismiss(object? sender, TappedEventArgs e)
+    {
+        StyleOverlay.IsVisible  = false;
+        StyleDropdown.IsVisible = false;
+    }
+
+    private void OnStyleBalancedTapped(object? sender, TappedEventArgs e)
+    {
+        OnStyleOverlayDismiss(sender, e);
+        SelectStyle(0);
+    }
+
+    private void OnStyleAggressiveTapped(object? sender, TappedEventArgs e)
+    {
+        OnStyleOverlayDismiss(sender, e);
+        SelectStyle(1);
+    }
+
+    private void OnStyleSolidTapped(object? sender, TappedEventArgs e)
+    {
+        OnStyleOverlayDismiss(sender, e);
+        SelectStyle(2);
+    }
+
     private void OnSetupNewGameClicked(object? sender = null, EventArgs? e = null)
     {
         ResultPanel.IsVisible          = false;
@@ -695,7 +748,8 @@ public partial class GamePage : ContentPage
         // no modo casual, só variando o tempo de raciocínio, o que fazia até o "Fácil"
         // continuar difícil de vencer de verdade.
         int skillLevel = CareerService.GetSkillLevel(_selectedDiff + 1);
-        _vm.StartNewGame(_selectedTimeMinutes, DiffDepths[_selectedDiff], skillLevel: skillLevel);
+        _vm.StartNewGame(_selectedTimeMinutes, DiffDepths[_selectedDiff], skillLevel: skillLevel,
+            personality: StylePersonalities[_selectedStyle]);
     }
 
     private async void OnResultActionClicked(object? sender, EventArgs e)
@@ -731,6 +785,7 @@ public partial class GamePage : ContentPage
             // CareerTimeMinutes não muda entre rodadas — é o tempo que o jogador escolheu
             // na CareerPage antes de começar o torneio, não varia mais com a dificuldade.
             state.CareerSkillLevel   = CareerService.GetSkillLevel(opp.Difficulty);
+            state.CareerPersonality  = CareerService.GetPersonality(opp.Name);
             ResultPanel.IsVisible = false;
 
             // Copa do Mundo (eliminação): cada rodada agora é melhor-de-2, então perder o
@@ -750,7 +805,8 @@ public partial class GamePage : ContentPage
             // painel de resultado nem o botão de continuar, já que essa mesma GamePage é
             // reaproveitada entre rodadas (sem recriar a página).
             _resultShownForGame = false;
-            _vm.StartTournamentGame(opp.Name, state.CareerTimeMinutes, state.CareerAIDepth, state.CareerSkillLevel);
+            _vm.StartTournamentGame(opp.Name, state.CareerTimeMinutes, state.CareerAIDepth,
+                state.CareerSkillLevel, state.CareerPersonality);
             return;
         }
 

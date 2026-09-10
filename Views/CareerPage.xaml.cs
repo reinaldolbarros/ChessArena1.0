@@ -549,9 +549,13 @@ public partial class CareerPage : ContentPage
         var (color, rating, icon) = difficulty >= 1 && difficulty <= DiffStyles.Length
             ? DiffStyles[difficulty - 1] : ("#9FB3C8", "—", "♞");
 
+        var personality = CareerService.GetPersonality(name);
+
         OpponentContextLabel.Text    = context;
         OpponentNameLabel.Text       = name;
         OpponentRatingLabel.Text     = $"Rating estimado: {rating}";
+        OpponentStyleLabel.Text      = $"{CareerService.PersonalityIcon(personality)} {CareerService.PersonalityLabel(personality)}";
+        OpponentStyleLabel.TextColor = Color.FromArgb(CareerService.PersonalityColorHex(personality));
         OpponentDiffLabel.Text       = Svc.DiffLabel(difficulty);
         OpponentDiffLabel.TextColor  = Color.FromArgb(color);
         OppDiffBadge.BackgroundColor = Color.FromArgb(color).WithAlpha(0.12f);
@@ -704,6 +708,7 @@ public partial class CareerPage : ContentPage
         state.CareerAIDepth         = 3; // tempo de raciocínio fixo — não representa mais dificuldade
         state.CareerTimeMinutes     = _selectedCareerTime;
         state.CareerSkillLevel      = CareerService.GetSkillLevel(opp.Difficulty);
+        state.CareerPersonality     = CareerService.GetPersonality(opp.Name);
 
         await Shell.Current.GoToAsync("GamePage");
     }

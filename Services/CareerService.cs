@@ -228,6 +228,41 @@ public class CareerService
         1 => "Fácil", 2 => "Médio", 3 => "Difícil", _ => "Hard"
     };
 
+    // Estilo do adversário — determinístico a partir do nome, pra ficar sempre o mesmo
+    // durante todo o torneio (e em qualquer revanche), sem precisar guardar mais nenhum
+    // dado novo em CareerPlayer/no save do torneio.
+    public static BotPersonality GetPersonality(string name)
+    {
+        int bucket = Math.Abs(name.GetHashCode()) % 3;
+        return bucket switch
+        {
+            0 => BotPersonality.Aggressive,
+            1 => BotPersonality.Solid,
+            _ => BotPersonality.Balanced
+        };
+    }
+
+    public static string PersonalityLabel(BotPersonality p) => p switch
+    {
+        BotPersonality.Aggressive => "Agressivo",
+        BotPersonality.Solid      => "Defensivo",
+        _                         => "Clássico"
+    };
+
+    public static string PersonalityIcon(BotPersonality p) => p switch
+    {
+        BotPersonality.Aggressive => "🔥",
+        BotPersonality.Solid      => "🛡",
+        _                         => "⚖"
+    };
+
+    public static string PersonalityColorHex(BotPersonality p) => p switch
+    {
+        BotPersonality.Aggressive => "#D85A30",
+        BotPersonality.Solid      => "#639922",
+        _                         => "#7F77DD"
+    };
+
     // ── Recording ─────────────────────────────────────────────────────────────
 
     public void RecordRound(CareerTournamentState t, string opponentName, CareerRoundResult result)

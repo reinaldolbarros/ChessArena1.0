@@ -99,7 +99,7 @@ public class BoardDrawable : IDrawable
         ['r'] = 0.84f,
         ['b'] = 0.94f,
         ['n'] = 0.94f,
-        ['p'] = 0.80f,
+        ['p'] = 0.74f,
     };
 
     public void Draw(ICanvas canvas, RectF bounds)

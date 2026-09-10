@@ -68,6 +68,7 @@ public class AppState
     public int    CareerAIDepth      { get; set; } = 1;
     public int    CareerTimeMinutes  { get; set; } = 10;
     public int    CareerSkillLevel   { get; set; } = 20;
+    public BotPersonality CareerPersonality { get; set; } = BotPersonality.Balanced;
     public bool   LastMatchWasDraw   { get; set; }
 
     // Revisão de partida

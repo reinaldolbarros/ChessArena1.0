@@ -163,6 +163,27 @@ public static class ChessEngine
         return false;
     }
 
+    // Regra 6.9 da FIDE: se a bandeira de um jogador cai (tempo esgotado) mas o ADVERSÁRIO
+    // não tem material suficiente pra dar xeque-mate de jeito nenhum (só o rei, ou rei + 1
+    // peça menor sozinha), o resultado vira empate em vez de vitória por tempo. Diferente de
+    // IsInsufficientMaterial (que olha o tabuleiro inteiro), este olha só as peças de UM lado.
+    public static bool SideHasInsufficientMatingMaterial(ChessBoard board, PieceColor color)
+    {
+        var pieces = new List<PieceType>();
+        for (int r = 0; r < 8; r++)
+            for (int c = 0; c < 8; c++)
+            {
+                var p = board.GetPiece(r, c);
+                if (p != null && p.Color == color && p.Type != PieceType.King)
+                    pieces.Add(p.Type);
+            }
+
+        if (pieces.Count == 0) return true; // só o rei
+        if (pieces.Count == 1 && pieces[0] is PieceType.Bishop or PieceType.Knight) return true; // rei + 1 peça menor
+
+        return false;
+    }
+
     private static string BoardKey(ChessBoard board)
     {
         var sb = new System.Text.StringBuilder(70);

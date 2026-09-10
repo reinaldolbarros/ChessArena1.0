@@ -153,6 +153,8 @@
                                    TextColor="#F2F5F8" FontSize="17" FontAttributes="Bold"/>
                             <Label x:Name="OpponentRatingLabel" Text=""
                                    TextColor="#9FB3C8" FontSize="12"/>
+                            <Label x:Name="OpponentStyleLabel" Text=""
+                                   FontSize="12" FontAttributes="Bold"/>
                         </VerticalStackLayout>
                         <Border x:Name="OppDiffBadge" Grid.Column="2"
                                 BackgroundColor="#1A2A4A" StrokeThickness="0"
