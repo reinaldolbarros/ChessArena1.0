@@ -171,15 +171,6 @@ public class GameReviewData
             return $"Lance preciso das {who} que consolidou a vantagem posicional de forma duradoura.";
         }
 
-        // Capture of enemy piece without losing material (good capture that Stockfish may
-        // over-penalise at lower depth because the capturing piece is temporarily attacked)
-        static bool IsGoodCapture(ReviewMoveRecord m)
-        {
-            PieceColor enemyCol = m.IsWhite ? PieceColor.Black : PieceColor.White;
-            var captured = m.BoardBefore.GetPiece(m.Move.ToRow, m.Move.ToCol);
-            return captured?.Color == enemyCol && !LostMaterial(m);
-        }
-
         // ── Seleção de candidatos ──────────────────────────────────────
         // Pega os 12 lances humanos com maior cpLoss (≥ 40), ordenados cronologicamente.
         // Claude seleciona 4-6 mais instrutivos. Sem filtro por qualidade aqui para garantir

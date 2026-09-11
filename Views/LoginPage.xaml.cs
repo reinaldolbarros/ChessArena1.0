@@ -129,6 +129,12 @@ public partial class LoginPage : ContentPage
         await GoToShell();
     }
 
+    private async void OnPrivacyPolicyTapped(object? sender, TappedEventArgs e)
+    {
+        try { await Launcher.Default.OpenAsync("https://claude.ai/code/artifact/f7251e8b-63c3-4b64-82a7-f8d25b422457"); }
+        catch { }
+    }
+
     // ── Redefinir senha (link por e-mail via Supabase) ────────────────────────
     private void OnForgotPassword(object? sender, TappedEventArgs e)
     {

@@ -16,10 +16,31 @@ create table if not exists public.profiles (
   avatar_path     text,
   country         text,
   state_abbr      text,
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  is_admin        boolean     not null default false
 );
 
 alter table public.profiles enable row level security;
+
+-- Protege is_admin de ser alterado pelo próprio app: o cliente pode mandar qualquer valor
+-- nesse campo no upsert do perfil (ver ProfileService.SyncToSupabaseAsync), mas esse gatilho
+-- sempre restaura o valor antigo quando quem está atualizando é o app (papel authenticated/
+-- anon via PostgREST) — só uma atualização feita direto pelo SQL Editor do painel (rodando
+-- como superusuário, sem esse papel) consegue realmente mudar esse campo.
+create or replace function public.protect_is_admin()
+returns trigger language plpgsql as $$
+begin
+  if auth.role() in ('authenticated', 'anon') then
+    new.is_admin := old.is_admin;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_is_admin_trigger on public.profiles;
+create trigger protect_is_admin_trigger
+  before update on public.profiles
+  for each row execute procedure public.protect_is_admin();
 
 -- Qualquer usuário autenticado pode ler perfis (ranking público)
 create policy "Perfis são públicos para leitura"
@@ -77,18 +98,52 @@ create policy "Desafios pendentes são visíveis"
   on public.challenges for select
   using (status = 'pending' and expires_at > now());
 
--- Usuários autenticados (inclusive anônimos) criam desafios
+-- Usuários autenticados (inclusive anônimos) criam desafios — mas só atribuindo a si mesmo
+-- como desafiante (antes dava pra criar um desafio em nome de qualquer challenger_id).
 create policy "Usuário cria desafio"
   on public.challenges for insert
-  with check (auth.role() = 'authenticated');
+  with check (auth.role() = 'authenticated' and challenger_id = auth.uid());
 
--- Qualquer usuário autenticado pode aceitar (atualizar status)
-create policy "Usuário aceita desafio"
+-- Qualquer usuário autenticado pode aceitar um desafio pendente — mas só pode levar o status
+-- de 'pending' para 'accepted', nunca mexer num desafio já aceito/expirado nem setar outro
+-- status qualquer (antes dava pra atualizar QUALQUER linha, de qualquer jeito).
+create policy "Usuário aceita desafio pendente"
   on public.challenges for update
-  using (auth.role() = 'authenticated');
+  using (auth.role() = 'authenticated' and status = 'pending' and expires_at > now())
+  with check (status = 'accepted');
 
 
 -- ── Limpeza periódica de desafios expirados ──────────────────
 -- Opcional: cron via pg_cron (extensão do Supabase)
 -- select cron.schedule('limpar-desafios', '*/15 * * * *',
 --   $$delete from public.challenges where expires_at < now()$$);
+
+
+-- ── Storage: fotos de avatar ──────────────────────────────────
+-- O SQL Editor não cria buckets — faça uma vez, manualmente, no painel:
+--   Storage → New bucket → nome exatamente "avatars" → marcar "Public bucket" → Save.
+-- Depois de criar o bucket, rode o bloco abaixo aqui no SQL Editor pra liberar upload:
+
+-- Qualquer usuário autenticado pode subir/atualizar SÓ o próprio arquivo (nome do arquivo
+-- é sempre "<user_id>.jpg", ver ProfileService.UploadAvatarIfLocalAsync).
+create policy "Usuário sobe a própria foto de avatar"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars'
+    and auth.role() = 'authenticated'
+    and name = auth.uid()::text || '.jpg'
+  );
+
+create policy "Usuário substitui a própria foto de avatar"
+  on storage.objects for update
+  using (
+    bucket_id = 'avatars'
+    and auth.role() = 'authenticated'
+    and name = auth.uid()::text || '.jpg'
+  );
+
+-- Leitura pública (o bucket "Public" já libera isso sozinho, esta política é redundante
+-- mas explícita — sem ela, se o bucket virar privado um dia, as fotos somem de todo mundo).
+create policy "Fotos de avatar são públicas para leitura"
+  on storage.objects for select
+  using (bucket_id = 'avatars');

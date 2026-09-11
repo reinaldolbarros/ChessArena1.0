@@ -15,7 +15,7 @@ public static class PersonalityMoveSelector
 {
     // Margem de avaliação (centipawns) que cada estilo aceita perder em troca de um lance mais
     // "com a cara dele" — nunca escolhe algo pior que isso, então nunca joga mal de propósito.
-    private const int SolidToleranceCp      = 25;
+    private const int SolidToleranceCp      = 40;
     private const int AggressiveToleranceCp = 150;
 
     public static string Choose(
@@ -23,6 +23,7 @@ public static class PersonalityMoveSelector
         BotPersonality                                personality,
         Func<string, bool>                             isCapture,
         Func<string, int>                              countThreats,
+        Func<string, int>                              countOwnThreats,
         bool                                           botPlaysWhite,
         Random                                          rng)
     {
@@ -43,26 +44,40 @@ public static class PersonalityMoveSelector
             .Where(c => !c.IsMate && best.ScoreCp - c.ScoreCp <= tolerance)
             .ToList();
 
-        var captures = withinTolerance.Where(c => isCapture(c.Move)).ToList();
-        if (captures.Count > 0)
-        {
-            // Entre as capturas dentro da margem, o Agressivo prefere a que deixa mais peças
-            // brancas ameaçadas depois — não só captura, mas captura "com mais intenção".
-            if (personality == BotPersonality.Aggressive && captures.Count > 1)
-                return captures.OrderByDescending(c => countThreats(c.Move)).First().Move;
+        if (withinTolerance.Count <= 1)
+            return best.Move;
 
-            return captures[rng.Next(captures.Count)].Move;
-        }
-
-        // Agressivo sem nenhuma captura à mão: em vez de cair pro lance mais "morno" (o
-        // objetivamente melhor), prefere o lance que deixa mais peças brancas ameaçadas —
-        // e só usa o avanço no território adversário como desempate entre lances empatados
-        // em número de ameaças (inclusive quando nenhum cria ameaça nova).
-        if (personality == BotPersonality.Aggressive && withinTolerance.Count > 1)
+        if (personality == BotPersonality.Aggressive)
         {
+            var captures = withinTolerance.Where(c => isCapture(c.Move)).ToList();
+            if (captures.Count > 0)
+            {
+                // Entre as capturas dentro da margem, prefere a que deixa mais peças brancas
+                // ameaçadas depois — não só captura, mas captura "com mais intenção".
+                return captures.Count > 1
+                    ? captures.OrderByDescending(c => countThreats(c.Move)).First().Move
+                    : captures[0].Move;
+            }
+
+            // Sem nenhuma captura à mão: em vez de cair pro lance mais "morno" (o
+            // objetivamente melhor), prefere o lance que deixa mais peças brancas ameaçadas —
+            // e só usa o avanço no território adversário como desempate entre lances
+            // empatados em número de ameaças (inclusive quando nenhum cria ameaça nova).
             return withinTolerance
                 .OrderByDescending(c => countThreats(c.Move))
                 .ThenBy(c => botPlaysWhite ? -DestinationRank(c.Move) : DestinationRank(c.Move))
+                .First().Move;
+        }
+
+        if (personality == BotPersonality.Solid)
+        {
+            // Prioridade oposta ao Agressivo: entre os candidatos dentro da margem, prefere
+            // o que deixa o MENOR número de peças próprias ameaçadas depois — evita pendurar
+            // peça ou entrar em complicação desnecessária. Empate quebrado pela avaliação
+            // (ainda prefere o lance mais forte entre os igualmente seguros).
+            return withinTolerance
+                .OrderBy(c => countOwnThreats(c.Move))
+                .ThenByDescending(c => c.ScoreCp)
                 .First().Move;
         }
 

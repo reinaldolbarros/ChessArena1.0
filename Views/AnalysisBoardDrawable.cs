@@ -91,7 +91,8 @@ public class AnalysisBoardDrawable : IDrawable
 
             var piece = Board?.GetPiece(r, c);
             if (piece == null) continue;
-            DrawPieceSymbol(canvas, piece, x, y, cw, ch, fontSize, off, alphaMultiplier: 1.0f);
+            if (!BoardDrawable.TryDrawPieceImage(canvas, piece.Type, piece.Color, x, y, cw, ch))
+                DrawPieceSymbol(canvas, piece, x, y, cw, ch, fontSize, off, alphaMultiplier: 1.0f);
         }
 
         // ── Ghost captured piece (floating near destination) ─────────────────
@@ -107,7 +108,8 @@ public class AnalysisBoardDrawable : IDrawable
             canvas.FillColor = Colors.Black.WithAlpha(0.45f);
             canvas.FillCircle(gx + gSize * 0.5f, gy + gSize * 0.5f, gSize * 0.56f);
 
-            DrawPieceSymbol(canvas, _ghostPiece, gx, gy, gSize, gSize, gFont, gOff, alphaMultiplier: 0.90f);
+            if (!BoardDrawable.TryDrawPieceImage(canvas, _ghostPiece.Type, _ghostPiece.Color, gx, gy, gSize, gSize, alpha: 0.90f))
+                DrawPieceSymbol(canvas, _ghostPiece, gx, gy, gSize, gSize, gFont, gOff, alphaMultiplier: 0.90f);
         }
 
         // ── Arrows ───────────────────────────────────────────────────────────

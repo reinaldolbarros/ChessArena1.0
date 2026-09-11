@@ -56,14 +56,20 @@ public partial class LobbyPage : ContentPage
         var p = AppState.Current.Profile;
         p.EnsureCountryDefault();
 
-        // File.Exists em background para não bloquear a thread de UI
-        bool hasPhoto = !string.IsNullOrEmpty(p.AvatarPath)
+        // Foto pode ser uma URL do Supabase Storage (outro aparelho) ou um arquivo local
+        // (ainda não sincronizado, ou visitante sem conta) — File.Exists só em background
+        // pra não bloquear a thread de UI.
+        bool isRemote = !string.IsNullOrEmpty(p.AvatarPath)
+            && (p.AvatarPath.StartsWith("http://") || p.AvatarPath.StartsWith("https://"));
+        bool hasLocalPhoto = !isRemote && !string.IsNullOrEmpty(p.AvatarPath)
             && await Task.Run(() => File.Exists(p.AvatarPath));
+        bool hasPhoto = isRemote || hasLocalPhoto;
 
         AvatarImage.IsVisible = hasPhoto;
         AvatarLabel.IsVisible = !hasPhoto;
-        if (hasPhoto) AvatarImage.Source = ImageSource.FromFile(p.AvatarPath);
-        else          AvatarLabel.Text   = p.Avatar;
+        if (isRemote)         AvatarImage.Source = ImageSource.FromUri(new Uri(p.AvatarPath));
+        else if (hasLocalPhoto) AvatarImage.Source = ImageSource.FromFile(p.AvatarPath);
+        else                   AvatarLabel.Text    = p.Avatar;
 
         NameLabel.Text   = p.Name;
         PointsLabel.Text = $"{p.Points} Elo";
@@ -109,7 +115,7 @@ public partial class LobbyPage : ContentPage
         // BonusArrow.Text        = "✓";
         // BonusArrow.TextColor   = Color.FromArgb("#C8A020");
 
-        AdminBtn.IsVisible = AppState.Current.IsAdminMode && !AppState.Current.Auth.IsAnonymous;
+        AdminBtn.IsVisible = AppState.Current.IsAdminMode && AppState.Current.AdminUiRevealed && !AppState.Current.Auth.IsAnonymous;
 
         var starsSvc = AppState.Current.Stars;
         StarsLabel.Text = $"⭐ {starsSvc.Balance} · {starsSvc.DedicationTitle}";
@@ -367,12 +373,17 @@ public partial class LobbyPage : ContentPage
         if (_adminTapCount < 5) return;
         _adminTapCount = 0;
 
-        AppState.Current.IsAdminMode = !AppState.Current.IsAdminMode;
-        AdminBtn.IsVisible = AppState.Current.IsAdminMode;
+        // Sem efeito nenhum (nem alerta) se a conta não for confirmada admin pelo servidor —
+        // pra quem não é admin, esse gesto não revela que existe algo aqui.
+        if (!AppState.Current.IsAdminMode) return;
 
-        string msg = AppState.Current.IsAdminMode
-            ? "⚙ MODO ADMIN ATIVADO\nBotão '⚙ Admin' disponível no topo da tela."
-            : "Modo admin desativado.";
+        var state = AppState.Current;
+        state.AdminUiRevealed = !state.AdminUiRevealed;
+        AdminBtn.IsVisible     = state.AdminUiRevealed && !state.Auth.IsAnonymous;
+
+        string msg = state.AdminUiRevealed
+            ? "⚙ Controles admin revelados nesta sessão."
+            : "Controles admin ocultados.";
         await DisplayAlert("Admin", msg, "OK");
     }
 
@@ -412,18 +423,6 @@ public partial class LobbyPage : ContentPage
         await Shell.Current.GoToAsync("CareerPage");
     }
 
-    private async void OnNavRankingTapped(object? sender, TappedEventArgs e)
-    {
-        if (sender is View v) await FlashTap(v);
-        await Shell.Current.GoToAsync("//RankingPage");
-    }
-
-    private async void OnRandomMatchClicked(object? sender, EventArgs e)
-        => await Shell.Current.GoToAsync("RandomMatchPage");
-
-    private async void OnCareerClicked(object? sender, EventArgs e)
-        => await Shell.Current.GoToAsync("CareerPage");
-
     private async void OnFriendGameTapped(object? sender, TappedEventArgs e)
     {
         await FlashTap(FriendCard);
@@ -447,21 +446,6 @@ public partial class LobbyPage : ContentPage
     //     => await Shell.Current.GoToAsync("TournamentLobbyPage");
     // private async void OnHistoryClicked(object? sender, EventArgs e)
     //     => await Shell.Current.GoToAsync("TournamentHistoryPage");
-
-    private async void OnRankingClicked(object? sender, EventArgs e)
-        => await Shell.Current.GoToAsync("//RankingPage");
-
-    private async void OnQuickPlayClicked(object? sender, EventArgs e)
-    {
-        AppState.Current.PendingTournamentGame = false;
-        AppState.Current.PendingFriendGame     = false;
-        await Shell.Current.GoToAsync("GamePage");
-    }
-
-    private async void OnFriendGameClicked(object? sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("FriendInvitePage");
-    }
 
     private async Task OnChangePasswordAsync()
     {

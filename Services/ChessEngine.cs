@@ -131,7 +131,7 @@ public static class ChessEngine
         if (inCheck && !hasLegal) return GameState.Checkmate;
         if (!inCheck && !hasLegal) return GameState.Stalemate;
         if (inCheck) return GameState.Check;
-        if (board.HalfMoveClock >= 100) return GameState.Draw;           // 50 lances
+        if (board.HalfMoveClock >= 100) return GameState.Draw;             // 50 lances
         if (IsInsufficientMaterial(board)) return GameState.Draw;         // material insuficiente
         if (board.PositionHistory.Values.Any(v => v >= 4)) return GameState.Draw; // repetição quádrupla
         return GameState.Normal;

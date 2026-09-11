@@ -384,7 +384,6 @@ public partial class TournamentLobbyPage : ContentPage
     // Painel personalizado
     // -----------------------------------------------------------------------
     private static readonly int[]     CustomSizes   = [2, 8, 16, 32, 64, 128];
-    private static readonly int[]     CustomTimes   = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
     private static readonly decimal[] CustomBuyIns  = [10, 25, 50, 100, 250, 500, 750, 1000];
 
     // Label de resumo — atualizada a cada seleção

@@ -2,15 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- The Mac App Store requires you specify if the app uses encryption. -->
-    <!-- Please consult https://developer.apple.com/documentation/bundleresources/information_property_list/itsappusesnonexemptencryption -->
-    <!-- <key>ITSAppUsesNonExemptEncryption</key> -->
-    <!-- Please indicate <true/> or <false/> here. -->
+    <!-- App só usa HTTPS/TLS padrão (chamadas ao Supabase) — sem criptografia própria, então
+         fica isento da documentação de exportação de criptografia da Apple. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 
-    <!-- Specify the category for your app here. -->
-    <!-- Please consult https://developer.apple.com/documentation/bundleresources/information_property_list/lsapplicationcategorytype -->
-    <!-- <key>LSApplicationCategoryType</key> -->
-    <!-- <string>public.app-category.YOUR-CATEGORY-HERE</string> -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.board-games</string>
 	<key>UIDeviceFamily</key>
 	<array>
 		<integer>2</integer>
@@ -36,5 +34,7 @@
 	<string>Assets.xcassets/appicon.appiconset</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Usado para tirar uma foto de perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Usado para escolher uma foto de perfil da sua galeria.</string>
 </dict>
 </plist>

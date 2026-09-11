@@ -41,6 +41,11 @@ public class SupabaseProfile : BaseModel
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Só é lido, nunca escrito pelo cliente (ver ProfileService.SyncToSupabaseAsync) — a
+    // única forma de ficar true é o próprio desenvolvedor mudar direto no painel do Supabase.
+    [Column("is_admin")]
+    public bool IsAdmin { get; set; } = false;
 }
 
 [Table("challenges")]

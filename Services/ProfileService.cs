@@ -193,9 +193,50 @@ public class ProfileService
 
     // ── Supabase sync ─────────────────────────────────────────────────────────
 
+    // Bucket público criado manualmente no painel do Supabase (Storage → New bucket →
+    // "avatars", marcado Public) — ver instruções no fim de supabase_schema.sql.
+    private const string AvatarBucket = "avatars";
+
+    /// <summary>
+    /// Sobe a foto local (AvatarPath aponta pra um arquivo no aparelho) pro Supabase Storage
+    /// e troca AvatarPath pela URL pública resultante — sem isso, a foto nunca sai do
+    /// aparelho onde foi tirada/escolhida (ver ProfilePage.SaveAvatarPhotoAsync).
+    /// Não faz nada se AvatarPath já for uma URL (http/https) ou estiver vazio.
+    /// </summary>
+    public async Task UploadAvatarIfLocalAsync()
+    {
+        if (string.IsNullOrEmpty(AvatarPath)) return;
+        if (AvatarPath.StartsWith("http://") || AvatarPath.StartsWith("https://")) return;
+        if (!File.Exists(AvatarPath)) return;
+
+        var svc = SupabaseService.Instance;
+        if (!svc.IsReady) return;
+        var userId = AppState.Current.Auth.UserId;
+        if (string.IsNullOrEmpty(userId)) return;
+
+        try
+        {
+            var bytes      = await File.ReadAllBytesAsync(AvatarPath);
+            var storageKey = $"{userId}.jpg";
+            await svc.Client.Storage.From(AvatarBucket).Upload(
+                bytes, storageKey,
+                new Supabase.Storage.FileOptions { Upsert = true, ContentType = "image/jpeg" });
+
+            // Cache-bust: sem isso, um app que já baixou a foto antiga não percebe a troca
+            // (a URL do bucket é sempre a mesma pro mesmo usuário).
+            AvatarPath = $"{svc.Client.Storage.From(AvatarBucket).GetPublicUrl(storageKey)}?v={DateTime.UtcNow.Ticks}";
+        }
+        catch
+        {
+            // Sem internet ou bucket ainda não criado — mantém o caminho local; a próxima
+            // tentativa de salvar tenta de novo.
+        }
+    }
+
     /// <summary>Envia perfil local para a tabela profiles no Supabase (upsert).</summary>
     public async Task SyncToSupabaseAsync()
     {
+        await UploadAvatarIfLocalAsync();
         for (int i = 0; i < 100 && !SupabaseService.Instance.IsReady; i++)
             await Task.Delay(200);
 
@@ -256,6 +297,11 @@ public class ProfileService
             if (!string.IsNullOrEmpty(row.Country))    Country    = row.Country!;
             if (!string.IsNullOrEmpty(row.StateAbbr))  State      = row.StateAbbr!;
             Points     = row.Elo;
+
+            // Modo admin: só existe se o próprio servidor confirmar is_admin=true pra esse
+            // usuário (nunca é setado pelo app — ver protect_is_admin_trigger no schema).
+            // Sem gesto secreto pra descobrir: o botão só aparece se isso vier true daqui.
+            AppState.Current.IsAdminMode = row.IsAdmin;
         }
         catch { }
     }

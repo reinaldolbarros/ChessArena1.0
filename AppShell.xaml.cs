@@ -22,7 +22,10 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("FriendInvitePage",     typeof(FriendInvitePage));
         Routing.RegisterRoute("LoginPage",            typeof(LoginPage));
         Routing.RegisterRoute("AdminPage",            typeof(AdminPage));
-        Routing.RegisterRoute("SubscriptionPage",     typeof(SubscriptionPage));
+        // SubscriptionPage — COMENTADO: sem integração real de compra (Google Play Billing /
+        // StoreKit). A tela ainda simula a assinatura localmente (Sub.Subscribe), o que as
+        // lojas rejeitam se alcançável. Reativar só depois de integrar a compra de verdade.
+        // Routing.RegisterRoute("SubscriptionPage",  typeof(SubscriptionPage));
         Routing.RegisterRoute("HallOfFamePage",       typeof(HallOfFamePage));
         Routing.RegisterRoute("CareerPage",       typeof(CareerPage));
         Routing.RegisterRoute("CareerFlowPage",   typeof(CareerFlowPage));

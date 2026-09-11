@@ -52,11 +52,17 @@ public partial class ProfilePage : ContentPage
 
     private void RefreshAvatarDisplay()
     {
-        bool hasPhoto = !string.IsNullOrEmpty(_pendingAvatarPath) && File.Exists(_pendingAvatarPath);
+        bool isRemote = !string.IsNullOrEmpty(_pendingAvatarPath)
+            && (_pendingAvatarPath.StartsWith("http://") || _pendingAvatarPath.StartsWith("https://"));
+        bool hasLocalPhoto = !isRemote && !string.IsNullOrEmpty(_pendingAvatarPath) && File.Exists(_pendingAvatarPath);
+        bool hasPhoto = isRemote || hasLocalPhoto;
+
         AvatarImage.IsVisible = hasPhoto;
         AvatarLabel.IsVisible = !hasPhoto;
 
-        if (hasPhoto)
+        if (isRemote)
+            AvatarImage.Source = ImageSource.FromUri(new Uri(_pendingAvatarPath));
+        else if (hasLocalPhoto)
             AvatarImage.Source = ImageSource.FromFile(_pendingAvatarPath);
         else
             AvatarLabel.Text = string.IsNullOrEmpty(_pendingEmoji) ? "♟" : _pendingEmoji;
@@ -145,6 +151,11 @@ public partial class ProfilePage : ContentPage
 
         if (string.IsNullOrEmpty(_pendingAvatarPath))
             p.Avatar = string.IsNullOrEmpty(_pendingEmoji) ? "♟" : _pendingEmoji;
+
+        // Sem isso, a edição ficava só no aparelho — Ranking e qualquer outro dispositivo
+        // continuavam mostrando os dados antigos, porque só liam do Supabase.
+        if (!AppState.Current.Auth.IsAnonymous)
+            await p.SyncToSupabaseAsync();
 
         await DisplayAlert("Salvo", "Perfil atualizado com sucesso.", "OK");
     }

@@ -55,7 +55,7 @@ public partial class GamePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        AdminBar.IsVisible = AppState.Current.IsAdminMode;
+        AdminBar.IsVisible = AppState.Current.IsAdminMode && AppState.Current.AdminUiRevealed;
 
         // Carrega as imagens das peças já com o GraphicsView anexado à tela
         // (evita criar o bitmap Win2D antes de existir um CanvasControl ativo,

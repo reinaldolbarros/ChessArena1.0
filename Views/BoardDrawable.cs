@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using ChessMAUI.Models;
 using ChessMAUI.Services;
 using ChessMAUI.ViewModels;
 using Microsoft.Maui.Graphics.Platform;
@@ -101,6 +102,54 @@ public class BoardDrawable : IDrawable
         ['n'] = 0.94f,
         ['p'] = 0.74f,
     };
+
+    // Desenha a peça pela imagem, se houver uma carregada pra ela (usado tanto pelo tabuleiro
+    // do jogo quanto pelo tabuleiro de revisão pós-partida, pra manterem a mesma arte).
+    // Retorna false quando não há imagem — quem chamou deve cair no desenho por símbolo.
+    public static bool TryDrawPieceImage(ICanvas canvas, PieceType type, PieceColor color,
+        float x, float y, float cw, float ch, float alpha = 1f)
+    {
+        char t = type switch
+        {
+            PieceType.King   => 'k',
+            PieceType.Queen  => 'q',
+            PieceType.Rook   => 'r',
+            PieceType.Bishop => 'b',
+            PieceType.Knight => 'n',
+            PieceType.Pawn   => 'p',
+            _                => '\0'
+        };
+        if (t == '\0') return false;
+
+        string code = $"{(color == PieceColor.White ? 'w' : 'b')}{t}";
+        if (!PieceImages.TryGetValue(code, out var pieceImg)) return false;
+
+        float heightFrac = PieceHeightFrac.TryGetValue(t, out var hf) ? hf : 0.7f;
+        float aspect      = pieceImg.Width / (float)pieceImg.Height;
+
+        float dh = ch * heightFrac;
+        float dw = dh * aspect;
+
+        float maxW = cw * 0.96f;
+        if (dw > maxW)
+        {
+            float shrink = maxW / dw;
+            dw *= shrink;
+            dh *= shrink;
+        }
+
+        if (t == 'k')
+            dw *= 1.16f;   // rei um pouco mais largo pro "porte" da coroa
+
+        float dx        = x + (cw - dw) / 2f;
+        float baselineY = y + ch * 0.95f;
+        float dy        = baselineY - dh;
+
+        canvas.Alpha = alpha;
+        canvas.DrawImage(pieceImg, dx, dy, dw, dh);
+        canvas.Alpha = 1f;
+        return true;
+    }
 
     public void Draw(ICanvas canvas, RectF bounds)
     {

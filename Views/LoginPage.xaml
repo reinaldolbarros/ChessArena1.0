@@ -221,6 +221,15 @@
                         BorderColor="#2A3850" BorderWidth="1.5"
                         FontSize="14" CornerRadius="12" HeightRequest="48"/>
 
+                <Label Text="Política de Privacidade"
+                       TextColor="#5A7898" FontSize="12"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,18,0,0">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPrivacyPolicyTapped"/>
+                    </Label.GestureRecognizers>
+                </Label>
+
             </VerticalStackLayout>
 
             <!-- ══ Painel: Redefinir senha ══ -->

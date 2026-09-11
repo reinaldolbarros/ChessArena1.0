@@ -55,8 +55,13 @@ public class AppState
     public int    FriendTimeMinutes  { get; set; }
     public int    FriendGameCount    { get; set; } // par = jogador1 com brancas, ímpar = invertido
 
-    // Modo administrador para testes
-    public bool IsAdminMode { get; set; } = false;
+    // Modo administrador para testes. IsAdminMode só fica true se o Supabase confirmar
+    // is_admin=true pra essa conta (ver ProfileService.LoadFromSupabaseAsync) — o app nunca
+    // decide isso sozinho. AdminUiRevealed controla só se os controles aparecem NESSA sessão;
+    // começa sempre false, mesmo pra conta admin, e exige o gesto de ativação de novo a cada
+    // abertura do app — ninguém que pegar o aparelho vê o botão sem saber o gesto.
+    public bool IsAdminMode     { get; set; } = false;
+    public bool AdminUiRevealed { get; set; } = false;
 
     // Modo carreira
     public CareerService Career { get; } = new();

@@ -358,6 +358,28 @@ public class GameViewModel : INotifyPropertyChanged
         return threats;
     }
 
+    // Conta quantas peças PRÓPRIAS (pretas) ficam ameaçadas depois de jogar esse candidato —
+    // usado só pelo Sólido, que prefere o lance que deixa a MENOR quantidade de peças
+    // penduradas, em vez de maximizar ameaças ao adversário como o Agressivo.
+    private int CountOwnThreatsAfterUci(string uci)
+    {
+        var m = UciToMove(_board, uci);
+        if (m == null) return 0;
+
+        var clone = _board.Clone();
+        ChessEngine.ApplyMove(clone, m);
+
+        int threats = 0;
+        for (int r = 0; r < 8; r++)
+        for (int c = 0; c < 8; c++)
+        {
+            var p = clone.GetPiece(r, c);
+            if (p != null && p.Color == PieceColor.Black && ChessEngine.IsSquareAttacked(clone, r, c, PieceColor.White))
+                threats++;
+        }
+        return threats;
+    }
+
     private static string MoveToUci(ChessMove move)
     {
         var sb = new System.Text.StringBuilder(5);
@@ -837,7 +859,7 @@ public class GameViewModel : INotifyPropertyChanged
                         // O bot (IA) sempre joga de Pretas nesse fluxo (ver WhitePlayerName/
                         // BlackPlayerName logo acima em StartNewGame).
                         uciStr = PersonalityMoveSelector.Choose(
-                            styled, _aiPersonality, IsCaptureUci, CountThreatsUci,
+                            styled, _aiPersonality, IsCaptureUci, CountThreatsUci, CountOwnThreatsAfterUci,
                             botPlaysWhite: false, _personalityRng);
                     }
                     else uciStr = null;
@@ -1105,35 +1127,12 @@ public class GameViewModel : INotifyPropertyChanged
                 break;
 
             case GameState.Stalemate:
-                // CurrentTurn = quem ficou sem movimentos (o afogado)
-                bool humanStalemated = _board.CurrentTurn == PieceColor.White;
-                if (IsFriendMode)
-                {
-                    StatusMessage = humanStalemated
-                        ? $"Afogamento! {WhitePlayerName} ficou sem movimentos. {BlackPlayerName} vence!"
-                        : $"Afogamento! {BlackPlayerName} ficou sem movimentos. {WhitePlayerName} vence!";
-                }
-                else if (IsTournamentMode)
-                {
-                    if (humanStalemated)
-                        StatusMessage = $"Afogamento! Você ficou sem movimentos. {TournamentOpponent} vence!";
-                    else
-                        StatusMessage = "Afogamento! Você afogou o adversário. Você vence!";
-                    SetTournamentResult(!humanStalemated);
-                }
-                else
-                {
-                    // Casual contra Bots: mesma regra do Torneio/Amigo — quem afoga o
-                    // adversário vence, em vez de empate (afogamento como derrota "roubada"
-                    // de quem estava perdendo é considerado injusto neste app).
-                    StatusMessage = humanStalemated
-                        ? "Afogamento! Você ficou sem movimentos. Pretas (IA) vencem!"
-                        : "Afogamento! Você afogou a IA. Brancas vencem!";
-                    // Casual não passa por SetTournamentResult (só torneio/online) — sem isso,
-                    // a tela de resultado cairia no fallback frágil de ler o texto da mensagem
-                    // pra saber quem venceu.
-                    HumanWon = !humanStalemated;
-                }
+                // Regra padrão de xadrez: afogamento é sempre empate, em qualquer modo — mesma
+                // convenção usada pra 50 lances/repetição/material insuficiente logo abaixo.
+                StatusMessage = IsTournamentMode
+                    ? $"Empate por afogamento. {TournamentOpponent} avança!"
+                    : "Afogamento! Empate!";
+                if (IsTournamentMode) SetTournamentResult(false);
                 GameOver = true;
                 StopClock();
                 break;
@@ -1144,7 +1143,7 @@ public class GameViewModel : INotifyPropertyChanged
                     ? "Regra dos 50 lances (sem captura/peão)"
                     : ChessEngine.IsInsufficientMaterial(_board)
                         ? "Material insuficiente para xeque-mate"
-                        : "Repetição de posição (3×)";
+                        : "Repetição de posição (4×)";
                 StatusMessage = IsTournamentMode
                     ? $"⚠ Derrota por empate: {drawReason}. {TournamentOpponent} avança!"
                     : $"Empate! ({drawReason})";
