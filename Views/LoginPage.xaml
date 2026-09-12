@@ -52,12 +52,11 @@
                                    IsPassword="True" ReturnType="Done"
                                    Completed="OnLoginPasswordCompleted"
                                    BackgroundColor="Transparent" FontSize="15"/>
-                            <Button x:Name="ToggleLoginPwdBtn"
-                                    Grid.Column="1" Text="👁"
+                            <ImageButton x:Name="ToggleLoginPwdBtn"
+                                    Grid.Column="1" Source="eye_open.svg"
                                     Clicked="OnToggleLoginPwd"
-                                    BackgroundColor="Transparent" TextColor="#4A6080"
-                                    FontSize="16" Padding="8,0"
-                                    HeightRequest="46" WidthRequest="44"/>
+                                    BackgroundColor="Transparent"
+                                    Padding="12" HeightRequest="46" WidthRequest="44"/>
                         </Grid>
                     </Border>
 
@@ -140,12 +139,11 @@
                                    IsPassword="True" ReturnType="Next"
                                    Completed="OnRegPasswordCompleted"
                                    BackgroundColor="Transparent" FontSize="15"/>
-                            <Button x:Name="ToggleRegPwdBtn"
-                                    Grid.Column="1" Text="👁"
+                            <ImageButton x:Name="ToggleRegPwdBtn"
+                                    Grid.Column="1" Source="eye_open.svg"
                                     Clicked="OnToggleRegPwd"
-                                    BackgroundColor="Transparent" TextColor="#4A6080"
-                                    FontSize="16" Padding="8,0"
-                                    HeightRequest="46" WidthRequest="44"/>
+                                    BackgroundColor="Transparent"
+                                    Padding="12" HeightRequest="46" WidthRequest="44"/>
                         </Grid>
                     </Border>
 
@@ -160,12 +158,11 @@
                                    IsPassword="True" ReturnType="Next"
                                    Completed="OnRegConfirmPasswordCompleted"
                                    BackgroundColor="Transparent" FontSize="15"/>
-                            <Button x:Name="ToggleRegConfirmPwdBtn"
-                                    Grid.Column="1" Text="👁"
+                            <ImageButton x:Name="ToggleRegConfirmPwdBtn"
+                                    Grid.Column="1" Source="eye_open.svg"
                                     Clicked="OnToggleRegConfirmPwd"
-                                    BackgroundColor="Transparent" TextColor="#4A6080"
-                                    FontSize="16" Padding="8,0"
-                                    HeightRequest="46" WidthRequest="44"/>
+                                    BackgroundColor="Transparent"
+                                    Padding="12" HeightRequest="46" WidthRequest="44"/>
                         </Grid>
                     </Border>
 
@@ -215,6 +212,22 @@
                     <BoxView Grid.Column="2" BackgroundColor="#2A4060" HeightRequest="1" VerticalOptions="Center"/>
                 </Grid>
 
+                <Border BackgroundColor="White" Stroke="#DADCE0" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12" HeightRequest="52"
+                        Margin="0,0,0,10">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"
+                          Padding="16,0" HorizontalOptions="Center">
+                        <Image x:Name="GoogleLogoImage" Source="google_logo.svg" WidthRequest="20" HeightRequest="20"
+                               VerticalOptions="Center"/>
+                        <Label x:Name="GoogleSignInLabel" Grid.Column="1" Text="Entrar com Google"
+                               TextColor="#1F1F1F" FontAttributes="Bold" FontSize="15"
+                               VerticalOptions="Center"/>
+                    </Grid>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnGoogleSignInClicked"/>
+                    </Border.GestureRecognizers>
+                </Border>
+
                 <Button Text="Entrar como visitante"
                         Clicked="OnAnonymousClicked"
                         BackgroundColor="Transparent" TextColor="#A8C0DC"
@@ -232,79 +245,104 @@
 
             </VerticalStackLayout>
 
-            <!-- ══ Painel: Redefinir senha ══ -->
+            <!-- ══ Painel: Redefinir senha (2 etapas reais) ══ -->
             <VerticalStackLayout x:Name="ResetPanel" IsVisible="False" Spacing="0">
 
-                <Label Text="🔑  Redefinir senha"
-                       TextColor="White" FontSize="20" FontAttributes="Bold"
-                       HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
-                <Label Text="Digite seu login ou e-mail e crie uma nova senha."
-                       TextColor="#BDD0E8" FontSize="15"
-                       HorizontalTextAlignment="Center" Margin="0,0,0,20"/>
+                <!-- Etapa 1: pedir o link por e-mail -->
+                <VerticalStackLayout x:Name="ResetStepEmail" Spacing="0">
 
-                <Label Text="Login ou e-mail" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
-                <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 12"
-                        Padding="16,4" Margin="0,0,0,14">
-                    <Entry x:Name="ResetCredentialEntry"
-                           Placeholder="login ou email cadastrado"
-                           PlaceholderColor="#4A6080" TextColor="White"
-                           Keyboard="Text" ReturnType="Next"
-                           Completed="OnResetCredentialCompleted"
-                           BackgroundColor="Transparent" FontSize="15"/>
-                </Border>
+                    <Label Text="🔑  Redefinir senha"
+                           TextColor="White" FontSize="20" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+                    <Label Text="Digite seu e-mail cadastrado. Vamos enviar um link de confirmação."
+                           TextColor="#BDD0E8" FontSize="15"
+                           HorizontalTextAlignment="Center" Margin="0,0,0,20"/>
 
-                <Label Text="Nova senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
-                <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 12"
-                        Padding="12,0,4,0" Margin="0,0,0,14">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Entry x:Name="NewPasswordEntry"
-                               Placeholder="Mínimo 6 caracteres"
+                    <Label Text="E-mail" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="16,4" Margin="0,0,0,14">
+                        <Entry x:Name="ResetCredentialEntry"
+                               Placeholder="email@exemplo.com"
                                PlaceholderColor="#4A6080" TextColor="White"
-                               IsPassword="True" ReturnType="Next"
-                               Completed="OnNewPasswordCompleted"
+                               Keyboard="Email" ReturnType="Done"
+                               Completed="OnResetCredentialCompleted"
                                BackgroundColor="Transparent" FontSize="15"/>
-                        <Button x:Name="ToggleNewPwdBtn"
-                                Grid.Column="1" Text="👁"
-                                Clicked="OnToggleNewPwd"
-                                BackgroundColor="Transparent" TextColor="#4A6080"
-                                FontSize="16" Padding="8,0"
-                                HeightRequest="46" WidthRequest="44"/>
-                    </Grid>
-                </Border>
+                    </Border>
 
-                <Label Text="Confirmar nova senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
-                <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 12"
-                        Padding="12,0,4,0" Margin="0,0,0,6">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Entry x:Name="ConfirmPasswordEntry"
-                               Placeholder="Repita a nova senha"
-                               PlaceholderColor="#4A6080" TextColor="White"
-                               IsPassword="True" ReturnType="Done"
-                               Completed="OnConfirmPasswordCompleted"
-                               BackgroundColor="Transparent" FontSize="15"/>
-                        <Button x:Name="ToggleConfirmPwdBtn"
-                                Grid.Column="1" Text="👁"
-                                Clicked="OnToggleConfirmPwd"
-                                BackgroundColor="Transparent" TextColor="#4A6080"
-                                FontSize="16" Padding="8,0"
-                                HeightRequest="46" WidthRequest="44"/>
-                    </Grid>
-                </Border>
+                    <Label x:Name="ResetErrorLabel"
+                           TextColor="#F87171" FontSize="12"
+                           HorizontalTextAlignment="Center"
+                           IsVisible="False" Margin="0,2,0,6"/>
 
-                <Label x:Name="ResetErrorLabel"
-                       TextColor="#F87171" FontSize="12"
-                       HorizontalTextAlignment="Center"
-                       IsVisible="False" Margin="0,2,0,6"/>
+                    <Button Text="ENVIAR LINK"
+                            Clicked="OnResetPasswordClicked"
+                            BackgroundColor="#0F3460" TextColor="White"
+                            FontAttributes="Bold" FontSize="16"
+                            CornerRadius="12" HeightRequest="54"
+                            Margin="0,10,0,14"/>
+                </VerticalStackLayout>
 
-                <Button Text="REDEFINIR SENHA"
-                        Clicked="OnResetPasswordClicked"
-                        BackgroundColor="#0F3460" TextColor="White"
-                        FontAttributes="Bold" FontSize="16"
-                        CornerRadius="12" HeightRequest="54"
-                        Margin="0,10,0,14"/>
+                <!-- Etapa 2: só aparece depois que o link do e-mail é confirmado -->
+                <VerticalStackLayout x:Name="ResetStepNewPassword" IsVisible="False" Spacing="0">
+
+                    <Label Text="✓  Link confirmado"
+                           TextColor="White" FontSize="20" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
+                    <Label Text="Agora defina sua nova senha."
+                           TextColor="#BDD0E8" FontSize="15"
+                           HorizontalTextAlignment="Center" Margin="0,0,0,20"/>
+
+                    <Label Text="Nova senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="12,0,4,0" Margin="0,0,0,14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry x:Name="NewPasswordEntry"
+                                   Placeholder="Mínimo 6 caracteres"
+                                   PlaceholderColor="#4A6080" TextColor="White"
+                                   IsPassword="True" ReturnType="Next"
+                                   Completed="OnNewPasswordCompleted"
+                                   BackgroundColor="Transparent" FontSize="15"/>
+                            <ImageButton x:Name="ToggleNewPwdBtn"
+                                    Grid.Column="1" Source="eye_open.svg"
+                                    Clicked="OnToggleNewPwd"
+                                    BackgroundColor="Transparent"
+                                    Padding="12" HeightRequest="46" WidthRequest="44"/>
+                        </Grid>
+                    </Border>
+
+                    <Label Text="Confirmar nova senha" TextColor="#BDD0E8" FontSize="15" Margin="4,0,0,6"/>
+                    <Border BackgroundColor="#0E1A30" Stroke="#2A4A7A"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 12"
+                            Padding="12,0,4,0" Margin="0,0,0,6">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry x:Name="ConfirmPasswordEntry"
+                                   Placeholder="Repita a nova senha"
+                                   PlaceholderColor="#4A6080" TextColor="White"
+                                   IsPassword="True" ReturnType="Done"
+                                   Completed="OnConfirmPasswordCompleted"
+                                   BackgroundColor="Transparent" FontSize="15"/>
+                            <ImageButton x:Name="ToggleConfirmPwdBtn"
+                                    Grid.Column="1" Source="eye_open.svg"
+                                    Clicked="OnToggleConfirmPwd"
+                                    BackgroundColor="Transparent"
+                                    Padding="12" HeightRequest="46" WidthRequest="44"/>
+                        </Grid>
+                    </Border>
+
+                    <Label x:Name="ResetStep2ErrorLabel"
+                           TextColor="#F87171" FontSize="12"
+                           HorizontalTextAlignment="Center"
+                           IsVisible="False" Margin="0,2,0,6"/>
+
+                    <Button Text="SALVAR NOVA SENHA"
+                            Clicked="OnConfirmNewPasswordClicked"
+                            BackgroundColor="#1D4ED8" TextColor="White"
+                            FontAttributes="Bold" FontSize="16"
+                            CornerRadius="12" HeightRequest="54"
+                            Margin="0,10,0,14"/>
+                </VerticalStackLayout>
 
                 <Label Text="← Voltar ao login"
                        TextColor="#A8C0D8" FontSize="15"

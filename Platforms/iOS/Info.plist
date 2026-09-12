@@ -32,5 +32,18 @@
 	<string>Usado para escolher uma foto de perfil da sua galeria.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+
+	<!-- Esquema chessarena:// — login Google (WebAuthenticator) e link de "esqueci senha" -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.reinaldo.chessarena.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>chessarena</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -233,6 +233,29 @@ public class ProfileService
         }
     }
 
+    /// <summary>
+    /// Limpa o cache local (Preferences) do perfil antes de logar — sem isso, trocar de conta
+    /// no mesmo aparelho (ex.: fazer login com uma conta Google diferente) podia deixar o nome/
+    /// Elo/avatar da conta anterior "grudados" na tela, porque LoadFromSupabaseAsync só
+    /// sobrescreve um campo local quando o servidor manda um valor não vazio para ele.
+    /// </summary>
+    public void ResetLocal()
+    {
+        Preferences.Default.Remove(KeyName);
+        Preferences.Default.Remove(KeyWins);
+        Preferences.Default.Remove(KeyLosses);
+        Preferences.Default.Remove(KeyTourneys);
+        Preferences.Default.Remove(KeyAvatar);
+        Preferences.Default.Remove(KeyAvatarPath);
+        Preferences.Default.Remove(KeyPoints);
+        Preferences.Default.Remove(KeyWeekPts);
+        Preferences.Default.Remove(KeyWeekReset);
+        Preferences.Default.Remove(KeyCountry);
+        Preferences.Default.Remove(KeyState);
+        Preferences.Default.Remove(KeyEloVersion);
+        Preferences.Default.Remove(KeyPointTransactions);
+    }
+
     /// <summary>Envia perfil local para a tabela profiles no Supabase (upsert).</summary>
     public async Task SyncToSupabaseAsync()
     {
@@ -276,7 +299,17 @@ public class ProfileService
 
         var svc = SupabaseService.Instance;
         if (!svc.IsReady) return;
+
+        // Logo após um login (email ou Google), o CurrentUser do SDK pode levar um instante
+        // pra "assentar" — sem essa espera, UserId vinha vazio e o carregamento era abortado
+        // silenciosamente, deixando o perfil com nome vazio (e a Lobby forçando a tela de
+        // Perfil, achando que era um cadastro incompleto).
         var userId = AppState.Current.Auth.UserId;
+        for (int i = 0; i < 15 && string.IsNullOrEmpty(userId); i++)
+        {
+            await Task.Delay(200);
+            userId = AppState.Current.Auth.UserId;
+        }
         if (string.IsNullOrEmpty(userId)) return;
 
         try

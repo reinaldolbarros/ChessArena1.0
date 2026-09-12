@@ -41,11 +41,12 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 	</PropertyGroup>
 
-	<!-- Otimizações Release Android: AOT + LLVM reduzem startup e melhoram performance -->
+	<!-- Otimizações Release Android: AOT completo (não só os métodos de inicialização) —
+	     todo o C# vira código nativo no pacote final, em vez de IL fácil de decompilar. -->
 	<PropertyGroup Condition="'$(Configuration)' == 'Release' And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
 		<RunAOTCompilation>true</RunAOTCompilation>
 		<EnableLLVM>true</EnableLLVM>
-		<AndroidEnableProfiledAot>true</AndroidEnableProfiledAot>
+		<AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
 	</PropertyGroup>
 
 	<ItemGroup>

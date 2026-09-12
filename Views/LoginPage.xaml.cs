@@ -15,7 +15,29 @@ public partial class LoginPage : ContentPage
 
         RegCountryPicker.ItemsSource = GeoData.Countries.ToList();
         RegStatePicker.ItemsSource   = GeoData.BrazilStates.ToList();
+
+        // Se o link de "esqueci senha" já tiver sido confirmado (deep link recebido antes
+        // dessa página existir, ex. app aberto direto pelo link) ou for confirmado enquanto
+        // essa página estiver na tela, mostra a etapa de nova senha automaticamente.
+        _auth.PasswordRecoveryReady += OnPasswordRecoveryReady;
+        if (_auth.HasPendingPasswordRecovery) ShowNewPasswordStep();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _auth.PasswordRecoveryReady -= OnPasswordRecoveryReady;
+    }
+
+    private void OnPasswordRecoveryReady() => ShowNewPasswordStep();
+
+    private void ShowNewPasswordStep() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        ResetPanel.IsVisible           = true;
+        FormPanel.IsVisible            = false;
+        ResetStepEmail.IsVisible       = false;
+        ResetStepNewPassword.IsVisible = true;
+    });
 
     private void OnRegCountryChanged(object? sender, EventArgs e)
     {
@@ -56,10 +78,10 @@ public partial class LoginPage : ContentPage
     private void OnToggleConfirmPwd(object? sender, EventArgs e)
         => TogglePassword(ConfirmPasswordEntry, ToggleConfirmPwdBtn);
 
-    private static void TogglePassword(Entry entry, Button btn)
+    private static void TogglePassword(Entry entry, ImageButton btn)
     {
         entry.IsPassword = !entry.IsPassword;
-        btn.Text         = entry.IsPassword ? "👁" : "🔒";
+        btn.Source       = entry.IsPassword ? "eye_open.svg" : "eye_closed.svg";
     }
 
     // ── Navegação entre campos (Return key) ──────────────────────────────────
@@ -70,8 +92,8 @@ public partial class LoginPage : ContentPage
     private void OnRegPasswordCompleted(object? sender, EventArgs e)        => RegConfirmPasswordEntry.Focus();
     private void OnRegConfirmPasswordCompleted(object? sender, EventArgs e) => OnCadastrarClicked(sender, e);
     private void OnResetCredentialCompleted(object? sender, EventArgs e)    => OnResetPasswordClicked(sender, e);
-    private void OnNewPasswordCompleted(object? sender, EventArgs e)        { }
-    private void OnConfirmPasswordCompleted(object? sender, EventArgs e)    => OnResetPasswordClicked(sender, e);
+    private void OnNewPasswordCompleted(object? sender, EventArgs e)        => ConfirmPasswordEntry.Focus();
+    private void OnConfirmPasswordCompleted(object? sender, EventArgs e)    => OnConfirmNewPasswordClicked(sender, e);
 
     // ── Entrar ───────────────────────────────────────────────────────────────
     private async void OnEntrarClicked(object? sender, EventArgs e)
@@ -88,7 +110,8 @@ public partial class LoginPage : ContentPage
         if (!ok)
             { ShowLoginError("E-mail ou senha incorretos."); return; }
 
-        _ = _profile.LoadFromSupabaseAsync();
+        _profile.ResetLocal();
+        await _profile.LoadFromSupabaseAsync();
         await GoToShell();
     }
 
@@ -111,9 +134,18 @@ public partial class LoginPage : ContentPage
         if (password != confirm)
             { ShowRegisterError("As senhas não conferem."); return; }
 
-        var (ok, error) = await _auth.TryRegisterAsync(login, email, password);
+        var (ok, needsConfirmation, error) = await _auth.TryRegisterAsync(login, email, password);
         if (!ok)
             { ShowRegisterError(error); return; }
+
+        if (needsConfirmation)
+        {
+            await DisplayAlert("✓ Cadastro realizado",
+                "Verifique seu e-mail e clique no link de confirmação antes de entrar.", "OK");
+            OnShowLogin(sender, new TappedEventArgs(null));
+            LoginEntry.Text = email;
+            return;
+        }
 
         _profile.Name    = login;
         _profile.Country = RegCountryPicker.SelectedItem as string ?? "";
@@ -122,9 +154,48 @@ public partial class LoginPage : ContentPage
         await GoToShell();
     }
 
+    // ── Google ───────────────────────────────────────────────────────────────
+    private bool _googleSignInInProgress;
+
+    private async void OnGoogleSignInClicked(object? sender, TappedEventArgs e)
+    {
+        if (_googleSignInInProgress) return;
+        _googleSignInInProgress = true;
+
+        try
+        {
+            var (ok, error) = await _auth.TrySignInWithGoogleAsync();
+            if (!ok)
+                { ShowLoginError(error); return; }
+
+            _profile.ResetLocal();
+            // Espera terminar de vez — se fosse "fire and forget", a LobbyPage podia checar
+            // IsNew antes do nome real chegar do servidor e forçar a tela de Perfil à toa.
+            await _profile.LoadFromSupabaseAsync();
+
+            // Login social não pede cadastro: se ainda não existe nome (primeira vez com essa
+            // conta), usa o nome da própria conta Google em vez de obrigar a passar pela tela
+            // de Perfil — o usuário pode trocar depois lá se quiser.
+            if (_profile.IsNew)
+            {
+                _profile.Name = !string.IsNullOrWhiteSpace(_auth.SuggestedDisplayName)
+                    ? _auth.SuggestedDisplayName
+                    : $"Jogador{Random.Shared.Next(1000, 9999)}";
+                _ = _profile.SyncToSupabaseAsync();
+            }
+
+            await GoToShell();
+        }
+        finally
+        {
+            _googleSignInInProgress = false;
+        }
+    }
+
     // ── Visitante ────────────────────────────────────────────────────────────
     private async void OnAnonymousClicked(object? sender, EventArgs e)
     {
+        _profile.ResetLocal();
         await _auth.LoginAnonymousAsync();
         await GoToShell();
     }
@@ -138,8 +209,10 @@ public partial class LoginPage : ContentPage
     // ── Redefinir senha (link por e-mail via Supabase) ────────────────────────
     private void OnForgotPassword(object? sender, TappedEventArgs e)
     {
-        ResetCredentialEntry.Text = LoginEntry.Text ?? "";
-        ResetErrorLabel.IsVisible = false;
+        ResetCredentialEntry.Text      = LoginEntry.Text ?? "";
+        ResetErrorLabel.IsVisible      = false;
+        ResetStepEmail.IsVisible       = true;
+        ResetStepNewPassword.IsVisible = false;
         FormPanel.IsVisible  = false;
         ResetPanel.IsVisible = true;
         ResetCredentialEntry.Focus();
@@ -157,17 +230,41 @@ public partial class LoginPage : ContentPage
             { ShowResetError("Não foi possível enviar o link. Verifique o e-mail."); return; }
 
         await DisplayAlert("✓ Link enviado",
-            "Verifique seu e-mail e clique no link para redefinir a senha.", "OK");
+            "Verifique seu e-mail e clique no link para confirmar. O app vai abrir sozinho na tela de nova senha.", "OK");
 
+        OnBackFromReset(sender, new TappedEventArgs(null));
+    }
+
+    // Só chamado depois que o link do e-mail já confirmou a sessão de recuperação
+    // (ver AuthService.CompletePasswordRecoveryAsync / ShowNewPasswordStep).
+    private async void OnConfirmNewPasswordClicked(object? sender, EventArgs e)
+    {
+        var pwd     = NewPasswordEntry.Text ?? "";
+        var confirm = ConfirmPasswordEntry.Text ?? "";
+
+        if (pwd.Length < 6)
+            { ShowResetStep2Error("Senha deve ter pelo menos 6 caracteres."); return; }
+        if (pwd != confirm)
+            { ShowResetStep2Error("As senhas não conferem."); return; }
+
+        var (ok, error) = await _auth.TrySetNewPasswordAsync(pwd);
+        if (!ok)
+            { ShowResetStep2Error(error); return; }
+
+        await DisplayAlert("✓ Senha redefinida", "Faça login com a sua nova senha.", "OK");
         OnBackFromReset(sender, new TappedEventArgs(null));
     }
 
     private void OnBackFromReset(object? sender, TappedEventArgs e)
     {
-        ResetPanel.IsVisible     = false;
-        FormPanel.IsVisible      = true;
-        EnterFields.IsVisible    = true;
-        RegisterFields.IsVisible = false;
+        ResetPanel.IsVisible           = false;
+        FormPanel.IsVisible            = true;
+        EnterFields.IsVisible          = true;
+        RegisterFields.IsVisible       = false;
+        ResetStepEmail.IsVisible       = true;
+        ResetStepNewPassword.IsVisible = false;
+        NewPasswordEntry.Text          = "";
+        ConfirmPasswordEntry.Text      = "";
         ClearErrors();
     }
 
@@ -181,8 +278,10 @@ public partial class LoginPage : ContentPage
 
     private void ClearErrors()
     {
-        LoginErrorLabel.IsVisible    = false;
-        RegisterErrorLabel.IsVisible = false;
+        LoginErrorLabel.IsVisible      = false;
+        RegisterErrorLabel.IsVisible   = false;
+        ResetErrorLabel.IsVisible      = false;
+        ResetStep2ErrorLabel.IsVisible = false;
     }
 
     private void ShowLoginError(string msg)
@@ -201,5 +300,11 @@ public partial class LoginPage : ContentPage
     {
         ResetErrorLabel.Text      = msg;
         ResetErrorLabel.IsVisible = true;
+    }
+
+    private void ShowResetStep2Error(string msg)
+    {
+        ResetStep2ErrorLabel.Text      = msg;
+        ResetStep2ErrorLabel.IsVisible = true;
     }
 }
