@@ -85,5 +85,13 @@ public class AppState
     public bool               IsOnlineGame      { get; set; }
     public string             OnlineOpponentName  { get; set; } = "";
     public int                OnlineTimeMinutes   { get; set; } = 5;
-    public bool               OnlinePlayerIsWhite { get; set; }
+    public bool                OnlinePlayerIsWhite { get; set; }
+
+    // Partida online real (Jogar com Amigo aceito, e futuramente Jogar Online de verdade)
+    public OnlineGameService OnlineGame         { get; } = new();
+    public string?           PendingOnlineGameId { get; set; }
+
+    // chessarena://invite?code=XXXXXX — código pendente de um link de convite aberto antes
+    // do usuário estar na tela certa (ver DeepLinkRouter/LobbyPage).
+    public string? PendingInviteCode { get; set; }
 }

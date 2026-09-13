@@ -29,6 +29,24 @@ public partial class LoginPage : ContentPage
         _auth.PasswordRecoveryReady -= OnPasswordRecoveryReady;
     }
 
+    // Os passos de "esqueci senha"/cadastro são só troca de painel local (não é uma
+    // navegação de verdade do Shell) — sem isso, o gesto de voltar (arrastar da borda)
+    // não sabia desfazer esses passos como a setinha/link já fazia.
+    protected override bool OnBackButtonPressed()
+    {
+        if (ResetPanel.IsVisible)
+        {
+            OnBackFromReset(this, new TappedEventArgs(null));
+            return true;
+        }
+        if (RegisterFields.IsVisible)
+        {
+            OnShowLogin(this, new TappedEventArgs(null));
+            return true;
+        }
+        return base.OnBackButtonPressed();
+    }
+
     private void OnPasswordRecoveryReady() => ShowNewPasswordStep();
 
     private void ShowNewPasswordStep() => MainThread.BeginInvokeOnMainThread(() =>

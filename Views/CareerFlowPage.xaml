@@ -16,22 +16,42 @@
                        TextColor="#A8BCCC" FontSize="15"/>
             </VerticalStackLayout>
 
-            <!-- Pyramid visual -->
+            <!-- Pyramid visual — barras com a mesma largura relativa dos níveis, um único
+                 degradê dourado→grafite em vez de arco-íris, texto real (não "arte" com
+                 espaços) pra não depender de fonte/alinhamento. -->
             <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
-                    StrokeShape="RoundRectangle 10" Padding="16,14">
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="          🏆 MUNDIAL"
-                           TextColor="#FFD700" FontSize="15" FontAttributes="Bold"/>
-                    <Label Text="       ══ CANDIDATOS ══"
-                           TextColor="#CC88FF" FontSize="15"/>
-                    <Label Text="    ── GRAND PRIX  ·  GRAND SWISS ──"
-                           TextColor="#9888DD" FontSize="15"/>
-                    <Label Text="  ════ COPA DO MUNDO FIDE ════"
-                           TextColor="#6AAFDC" FontSize="15"/>
-                    <Label Text="════════ ZONAL ════════"
-                           TextColor="#A8BCCC" FontSize="15"/>
-                    <Label Text="══════════ LOCAL ══════════"
-                           TextColor="#6A7A8A" FontSize="15"/>
+                    StrokeShape="RoundRectangle 10" Padding="16,18">
+                <VerticalStackLayout Spacing="7">
+                    <Border BackgroundColor="#D4A017" StrokeShape="RoundRectangle 6"
+                             HeightRequest="30" WidthRequest="150" HorizontalOptions="Center">
+                        <Label Text="🏆 MUNDIAL" TextColor="#0D1828" FontSize="13" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                    </Border>
+                    <Border BackgroundColor="#AB8A38" StrokeShape="RoundRectangle 6"
+                             HeightRequest="28" WidthRequest="185" HorizontalOptions="Center">
+                        <Label Text="CANDIDATOS" TextColor="#0D1828" FontSize="13" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                    </Border>
+                    <Border BackgroundColor="#83808F" StrokeShape="RoundRectangle 6"
+                             HeightRequest="28" WidthRequest="220" HorizontalOptions="Center">
+                        <Label Text="GRAND PRIX · GRAND SWISS" TextColor="#0D1828" FontSize="12" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                    </Border>
+                    <Border BackgroundColor="#5D6C86" StrokeShape="RoundRectangle 6"
+                             HeightRequest="28" WidthRequest="255" HorizontalOptions="Center">
+                        <Label Text="COPA DO MUNDO FIDE" TextColor="White" FontSize="12" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                    </Border>
+                    <Border BackgroundColor="#3E4F6B" StrokeShape="RoundRectangle 6"
+                             HeightRequest="28" WidthRequest="290" HorizontalOptions="Center">
+                        <Label Text="ZONAL" TextColor="White" FontSize="12" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                    </Border>
+                    <Border BackgroundColor="#293852" StrokeShape="RoundRectangle 6"
+                             HeightRequest="28" WidthRequest="325" HorizontalOptions="Center">
+                        <Label Text="LOCAL" TextColor="White" FontSize="12" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                    </Border>
                 </VerticalStackLayout>
             </Border>
 

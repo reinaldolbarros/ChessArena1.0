@@ -71,4 +71,60 @@ public class SupabaseChallenge : BaseModel
 
     [Column("expires_at")]
     public DateTime ExpiresAt { get; set; }
+
+    // Preenchido pela função accept_challenge() assim que alguém aceita o desafio — o
+    // criador descobre isso assinando a própria linha por Realtime (ver FriendInvitePage).
+    [Column("game_id")]
+    public string? GameId { get; set; }
+}
+
+[Table("games")]
+public class SupabaseGame : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public string Id { get; set; } = "";
+
+    [Column("white_id")]
+    public string WhiteId { get; set; } = "";
+
+    [Column("black_id")]
+    public string BlackId { get; set; } = "";
+
+    [Column("time_minutes")]
+    public int TimeMinutes { get; set; }
+
+    // Lances em UCI (ex. "e2e4") — o gatilho validate_game_move só aceita anexar
+    // exatamente 1 lance novo por UPDATE, mantendo o histórico anterior intacto.
+    [Column("moves")]
+    public List<string> Moves { get; set; } = new();
+
+    [Column("turn")]
+    public string Turn { get; set; } = "white";
+
+    [Column("white_remaining_ms")]
+    public long WhiteRemainingMs { get; set; }
+
+    [Column("black_remaining_ms")]
+    public long BlackRemainingMs { get; set; }
+
+    [Column("last_move_at")]
+    public DateTime LastMoveAt { get; set; }
+
+    [Column("status")]
+    public string Status { get; set; } = "active";
+
+    [Column("result")]
+    public string? Result { get; set; }
+
+    [Column("end_reason")]
+    public string? EndReason { get; set; }
+
+    [Column("draw_offered_by")]
+    public string? DrawOfferedBy { get; set; }
+
+    [Column("white_claim")]
+    public string? WhiteClaim { get; set; }
+
+    [Column("black_claim")]
+    public string? BlackClaim { get; set; }
 }

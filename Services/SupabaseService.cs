@@ -18,7 +18,10 @@ public sealed class SupabaseService
         var options = new SupabaseOptions
         {
             AutoRefreshToken    = true,
-            AutoConnectRealtime = false,
+            // Necessário pro modo online real: sincronizar lances da partida (tabela
+            // "games") e o criador de um desafio descobrir que foi aceito (tabela
+            // "challenges") — ambos via Postgres Changes.
+            AutoConnectRealtime = true,
             SessionHandler      = new MauiSessionHandler(),
         };
 

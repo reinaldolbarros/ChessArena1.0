@@ -8,6 +8,18 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowContentOverlay">@null</item>
+        <item name="bottomNavigationStyle">@style/ChessArenaBottomNav</item>
+    </style>
+
+    <!-- Ícones/texto das abas (Início/Ranking/Perfil) mais discretos -->
+    <style name="ChessArenaBottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="itemIconSize">20dp</item>
+        <item name="itemTextAppearanceActive">@style/ChessArenaBottomNavText</item>
+        <item name="itemTextAppearanceInactive">@style/ChessArenaBottomNavText</item>
+    </style>
+
+    <style name="ChessArenaBottomNavText" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">10sp</item>
     </style>
 
     <style name="Maui.SplashTheme" parent="Theme.MaterialComponents.DayNight.DarkActionBar">

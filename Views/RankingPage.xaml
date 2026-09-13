@@ -5,20 +5,10 @@
              Title="Ranking"
              BackgroundColor="#1A1A2E">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
-
-        <!-- ══ Abas Global / Semanal ══ -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="#0F3460">
-            <Button x:Name="GlobalTab" Text="🌍  Global"  Clicked="OnGlobalTab"
-                    BackgroundColor="#1A5276" TextColor="White" CornerRadius="0"
-                    FontAttributes="Bold" HeightRequest="42"/>
-            <Button x:Name="WeeklyTab" Grid.Column="1" Text="📅  Semanal" Clicked="OnWeeklyTab"
-                    BackgroundColor="#0F3460" TextColor="#AAAACC" CornerRadius="0"
-                    HeightRequest="42"/>
-        </Grid>
+    <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- ══ Cabeçalho da tabela ══ -->
-        <Grid Grid.Row="1" x:Name="TableHeader" ColumnDefinitions="44,*,80"
+        <Grid Grid.Row="0" x:Name="TableHeader" ColumnDefinitions="44,*,80"
               BackgroundColor="#0A1628" Padding="10,5">
             <Label Text="#"         TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
             <Label Grid.Column="1" Text="Jogador" TextColor="#E0E0F4" FontSize="15" FontAttributes="Bold"/>
@@ -28,12 +18,12 @@
         <!-- ══ Lista de ranking — se o usuário não estiver entre os exibidos, a linha dele
              é adicionada ao final desta mesma lista (ver RankingPage.xaml.cs), aparecendo
              naturalmente depois do último jogador, e não como um quadro fixo separado ══ -->
-        <ScrollView Grid.Row="2">
+        <ScrollView Grid.Row="1">
             <VerticalStackLayout x:Name="RankList" Spacing="1"/>
         </ScrollView>
 
         <!-- ══ Botão extrato de pontos ══ -->
-        <Button Grid.Row="3"
+        <Button Grid.Row="2"
                 Text="📋  extrato de rating"
                 Clicked="OnExtractClicked"
                 BackgroundColor="#12172A" TextColor="#A0A0CC"

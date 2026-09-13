@@ -1,6 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:enableOnBackInvokedCallback="true" android:extractNativeLibs="true"></application>
+	<!-- enableOnBackInvokedCallback=false: no Android 13+ com navegação por gesto, deixar
+	     "true" (a API nova de "predictive back") fazia o gesto de arrastar da borda pular
+	     direto pro comportamento padrão do Android (ex.: fechar o app) em vez de passar pela
+	     navegação do MAUI/Shell — só a seta desenhada na tela (que chama Shell.GoToAsync
+	     direto no código) continuava funcionando. Com "false", o gesto volta a passar pelo
+	     mesmo caminho clássico que o botão de voltar físico/de tela sempre usou. -->
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:extractNativeLibs="true"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.CAMERA" />

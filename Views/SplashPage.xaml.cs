@@ -16,7 +16,7 @@ public partial class SplashPage : ContentPage
         // Supabase inicia em background — não bloqueia o splash
         _ = SupabaseService.Instance.InitializeAsync();
 
-        await Task.Delay(1000);
+        await Task.Delay(2000);
 
         var auth    = AppState.Current.Auth;
         var profile = AppState.Current.Profile;

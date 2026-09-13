@@ -453,6 +453,21 @@ public class CareerService
         Save(p);
     }
 
+    /// <summary>Descarta as rodadas já jogadas no torneio atual e sorteia um novo confronto
+    /// no MESMO nível — não mexe no restante da carreira (nível, títulos, ciclo).</summary>
+    public void RestartActiveTournament(CareerProgress p)
+    {
+        var level = p.ActiveTournament?.Level ?? p.CurrentLevel;
+        p.ActiveTournament = level switch
+        {
+            CareerLevel.CopaMundo  => CreateCopaMundo(),
+            CareerLevel.Candidatos => CreateCandidatosTournament(),
+            CareerLevel.Mundial    => CreateMundial(),
+            _                      => CreateSwissTournament(level),
+        };
+        Save(p);
+    }
+
     public void ApplyStageResult(CareerProgress p)
     {
         var t       = p.ActiveTournament;

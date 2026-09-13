@@ -219,11 +219,21 @@ public class GameViewModel : INotifyPropertyChanged
     public bool   ShowNewGameButton   => !IsTournamentMode;
     public bool?  HumanWon            { get; private set; }
 
-    // Modo amigo (pass-and-play)
+    // Modo amigo (pass-and-play — mesmo aparelho)
     public bool   IsFriendMode       { get; private set; }
     public string WhitePlayerName    { get; private set; } = "Você";
     public string BlackPlayerName    { get; private set; } = "IA";
     public event Action<string>? RequestHandoff;
+
+    // Modo online real (Jogar com Amigo aceito por código, e futuramente Jogar Online) — os
+    // dois lados são humanos como no modo amigo (por isso IsFriendMode também fica true, pra
+    // reaproveitar toda a lógica de alternância/mensagens já existente), mas cada aparelho só
+    // controla UMA cor fixa, e os lances são sincronizados pelo servidor, não por handoff local.
+    public bool             IsOnlineMode      { get; private set; }
+    public event Action<string>? DrawOfferedByOpponent; // dispara quando o adversário oferece empate
+    private OnlineGameService? _online;
+    private PieceColor?        _onlineLocalColor;
+    private string              _onlineOpponentId = "";
 
     public int MoveCount => _allMoveSnapshots.Count;
 
@@ -242,8 +252,8 @@ public class GameViewModel : INotifyPropertyChanged
     public ICommand ResignCommand       { get; }
     public Command  OfferDrawCommand    { get; }
 
-    public bool ShowResignButton => !_gameOver && !IsFriendMode;
-    public bool CanOfferDraw    => !IsFriendMode && !_gameOver && !_isAIThinking && !_drawRefusedThisTurn;
+    public bool ShowResignButton => !_gameOver && (!IsFriendMode || IsOnlineMode);
+    public bool CanOfferDraw    => (!IsFriendMode || IsOnlineMode) && !_gameOver && !_isAIThinking && !_drawRefusedThisTurn;
 
     // Peças capturadas e vantagem de material
     public string WhiteCapturesDisplay { get; private set; } = "";
@@ -298,6 +308,82 @@ public class GameViewModel : INotifyPropertyChanged
         WhitePlayerName = white;
         BlackPlayerName = black;
         StartNewGame(minutes, aiDepth: 1, isTournament: false, friendMode: true);
+    }
+
+    /// <summary>Entra numa partida online real (aceita por código de amigo, ou — no futuro —
+    /// por matchmaking). "game" já veio carregado do servidor (LoadGameAsync); os lances já
+    /// jogados são replicados no tabuleiro local antes de assinar as próximas atualizações.</summary>
+    public void StartOnlineGame(SupabaseGame game, OnlineGameService online, bool playerIsWhite, string opponentName)
+    {
+        _online           = online;
+        _onlineLocalColor = playerIsWhite ? PieceColor.White : PieceColor.Black;
+        _onlineOpponentId = playerIsWhite ? game.BlackId : game.WhiteId;
+
+        WhitePlayerName = playerIsWhite ? "Você" : opponentName;
+        BlackPlayerName = playerIsWhite ? opponentName : "Você";
+
+        StartNewGame(game.TimeMinutes, aiDepth: 1, isTournament: false, friendMode: true, onlineMode: true);
+
+        // Sobrescreve o relógio recém-zerado pelo StartNewGame com o valor real do servidor.
+        _whiteTime = TimeSpan.FromMilliseconds(game.WhiteRemainingMs);
+        _blackTime = TimeSpan.FromMilliseconds(game.BlackRemainingMs);
+        NotifyTimerProperties();
+
+        // Reconectando a uma partida já em andamento: replica os lances já feitos.
+        foreach (var uci in game.Moves)
+        {
+            var move = UciToMove(_board, uci);
+            if (move == null) break;
+            ExecutePlayerMove(move, fromRemote: true);
+        }
+
+        _online.GameUpdated += OnOnlineGameUpdated;
+    }
+
+    private void OnOnlineGameUpdated(SupabaseGame game)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            _whiteTime = TimeSpan.FromMilliseconds(game.WhiteRemainingMs);
+            _blackTime = TimeSpan.FromMilliseconds(game.BlackRemainingMs);
+            NotifyTimerProperties();
+
+            for (int i = _uciMoveHistory.Count; i < game.Moves.Count && !_gameOver; i++)
+            {
+                var move = UciToMove(_board, game.Moves[i]);
+                if (move == null) break;
+                ExecutePlayerMove(move, fromRemote: true);
+            }
+
+            if (!_gameOver && !string.IsNullOrEmpty(game.DrawOfferedBy) && game.DrawOfferedBy == _onlineOpponentId)
+                DrawOfferedByOpponent?.Invoke(WhitePlayerName == "Você" ? BlackPlayerName : WhitePlayerName);
+
+            if (!_gameOver && game.Status == "finished")
+                ApplyOnlineFinalResult(game);
+        });
+    }
+
+    /// <summary>Chamado pela GamePage quando o jogador responde à oferta de empate do
+    /// adversário (evento DrawOfferedByOpponent).</summary>
+    public void RespondToDrawOffer(bool accept) => _ = _online?.RespondDrawAsync(accept);
+
+    private void ApplyOnlineFinalResult(SupabaseGame game)
+    {
+        StopClock();
+        bool localIsWhite = _onlineLocalColor == PieceColor.White;
+        bool localWon     = game.Result == (localIsWhite ? "white" : "black");
+        bool isDraw       = game.Result == "draw";
+
+        StatusMessage = game.EndReason switch
+        {
+            "resign"       => isDraw ? "Empate." : localWon ? "O adversário desistiu. Você venceu!" : "Você desistiu.",
+            "timeout"      => isDraw ? "Empate." : localWon ? "O adversário estourou o tempo. Você venceu!" : "Você estourou o tempo.",
+            "draw_agreed"  => "Empate acordado!",
+            _              => isDraw ? "Empate!" : localWon ? "Xeque-Mate! Você venceu!" : "Xeque-Mate! Você perdeu.",
+        };
+        GameOver = true;
+        HumanWon = isDraw ? null : localWon;
+        _sound.PlayGameOver();
     }
 
     private static ChessMove? UciToMove(ChessBoard board, string uci)
@@ -401,8 +487,10 @@ public class GameViewModel : INotifyPropertyChanged
     // ----------------------------------------------------------------
     // Novo jogo — chamado pela GamePage após o usuário escolher tempo e dificuldade
     // ----------------------------------------------------------------
-    public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false, int? skillLevel = null, BotPersonality personality = BotPersonality.Balanced)
+    public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false, int? skillLevel = null, BotPersonality personality = BotPersonality.Balanced, bool onlineMode = false)
     {
+        if (_online != null) _online.GameUpdated -= OnOnlineGameUpdated;
+        if (!onlineMode) { _online = null; _onlineLocalColor = null; _onlineOpponentId = ""; }
         _aiPersonality = personality;
         _aiCts?.Cancel();
         _aiCts = null;
@@ -447,10 +535,13 @@ public class GameViewModel : INotifyPropertyChanged
         HumanWon          = null;
         IsTournamentMode  = isTournament;
         IsFriendMode      = friendMode;
+        IsOnlineMode      = onlineMode;
         if (!friendMode) { WhitePlayerName = "Você"; BlackPlayerName = "IA"; }
         OnPC(nameof(IsTournamentMode));
         OnPC(nameof(TournamentOpponent));
         OnPC(nameof(ShowNewGameButton));
+        OnPC(nameof(IsOnlineMode));
+        OnPC(nameof(ShowResignButton));
         OnPC(nameof(CanOfferDraw));
         OfferDrawCommand.ChangeCanExecute();
 
@@ -560,6 +651,8 @@ public class GameViewModel : INotifyPropertyChanged
 
     private void EndByMoveTimeout()
     {
+        if (IsOnlineMode) { _ = _online!.ClaimTimeoutAsync(); return; }
+
         StopClock();
         bool whiteFlagged  = _board.CurrentTurn == PieceColor.White;
         var  opponentColor = whiteFlagged ? PieceColor.Black : PieceColor.White;
@@ -586,6 +679,8 @@ public class GameViewModel : INotifyPropertyChanged
     // vez de vitória por tempo — ver ChessEngine.SideHasInsufficientMatingMaterial.
     private void EndByTimeout()
     {
+        if (IsOnlineMode) { _ = _online!.ClaimTimeoutAsync(); return; }
+
         StopClock();
         bool whiteFlagged   = _board.CurrentTurn == PieceColor.White;
         var  opponentColor  = whiteFlagged ? PieceColor.Black : PieceColor.White;
@@ -638,8 +733,8 @@ public class GameViewModel : INotifyPropertyChanged
     {
         if (_gameOver || _awaitingPromotion) return;
 
-        var humanColor = IsFriendMode ? _board.CurrentTurn : PieceColor.White;
-        bool isMyTurn  = IsFriendMode || _board.CurrentTurn == PieceColor.White;
+        var humanColor = IsOnlineMode ? _onlineLocalColor!.Value : IsFriendMode ? _board.CurrentTurn : PieceColor.White;
+        bool isMyTurn  = IsOnlineMode ? _board.CurrentTurn == _onlineLocalColor : (IsFriendMode || _board.CurrentTurn == PieceColor.White);
         var piece      = _board.GetPiece(tapped.Row, tapped.Col);
 
         if (_selectedSquare != null)
@@ -695,7 +790,7 @@ public class GameViewModel : INotifyPropertyChanged
         BoardChanged?.Invoke();
     }
 
-    private void ExecutePlayerMove(ChessMove move)
+    private void ExecutePlayerMove(ChessMove move, bool fromRemote = false)
     {
         _drawRefusedThisTurn = false;
         OnPC(nameof(CanOfferDraw));
@@ -730,9 +825,10 @@ public class GameViewModel : INotifyPropertyChanged
         _moves.Add(notation);
         UpdateMoveList();
 
-        if (!IsFriendMode)
+        string uciMove = MoveToUci(move);
+        if (!IsFriendMode || IsOnlineMode)
         {
-            _uciMoveHistory.Add(MoveToUci(move));
+            _uciMoveHistory.Add(uciMove);
             _playerMoveSnapshots.Add(new(snapshotBeforeMove, move, _moves.Count - 1));
             int pEval = AIService.EvaluateStatic(_board); // avalia posição atual (instantâneo)
             bool pBlackToMove = _board.CurrentTurn == PieceColor.Black;
@@ -745,7 +841,13 @@ public class GameViewModel : INotifyPropertyChanged
 
         if (!_gameOver)
         {
-            if (IsFriendMode)
+            if (IsOnlineMode)
+            {
+                // Sem handoff, sem IA — só manda o lance pro servidor (se foi nosso) e espera
+                // o lance do adversário chegar pelo Realtime.
+                if (!fromRemote) _ = _online!.SubmitMoveAsync(_uciMoveHistory.Take(_uciMoveHistory.Count - 1).ToList(), uciMove);
+            }
+            else if (IsFriendMode)
             {
                 var nextName = _board.CurrentTurn == PieceColor.White ? WhitePlayerName : BlackPlayerName;
                 ResetMoveTimer();
@@ -755,7 +857,23 @@ public class GameViewModel : INotifyPropertyChanged
                 _ = RunAIAsync();
         }
         else
+        {
             ResetMoveTimer();
+            // Cada lado reivindica o mesmo resultado que detectou sozinho a partir do mesmo
+            // histórico sincronizado — o servidor só libera Elo quando os dois concordarem
+            // (ver submit_result_claim em supabase_schema_online.sql).
+            if (IsOnlineMode)
+            {
+                string? claim = state switch
+                {
+                    GameState.Checkmate => _board.CurrentTurn == PieceColor.White ? "black" : "white",
+                    GameState.Stalemate => "draw",
+                    GameState.Draw      => "draw",
+                    _                    => null,
+                };
+                if (claim != null) _ = _online!.ClaimResultAsync(claim);
+            }
+        }
     }
 
     private void OnPromote(string pieceType)
@@ -1075,6 +1193,14 @@ public class GameViewModel : INotifyPropertyChanged
         bool confirmed = await ResignRequested.Invoke();
         if (!confirmed) return;
 
+        if (IsOnlineMode)
+        {
+            // Não encerra localmente — espera o servidor confirmar (chega pelo Realtime,
+            // ver OnOnlineGameUpdated/ApplyOnlineFinalResult).
+            _ = _online!.ResignAsync();
+            return;
+        }
+
         StopClock();
         StatusMessage = IsTournamentMode
             ? $"Você desistiu. {TournamentOpponent} vence!"
@@ -1090,7 +1216,17 @@ public class GameViewModel : INotifyPropertyChanged
     // ----------------------------------------------------------------
     private async Task OnOfferDraw()
     {
-        if (_gameOver || DrawOfferRequested == null) return;
+        if (_gameOver) return;
+
+        if (IsOnlineMode)
+        {
+            // A decisão é do adversário, não da IA — só registra a oferta no servidor; a
+            // resposta chega depois pelo Realtime (DrawOfferedByOpponent / fim de partida).
+            _ = _online!.OfferDrawAsync();
+            return;
+        }
+
+        if (DrawOfferRequested == null) return;
         if (_isAIThinking) return;
 
         // IA aceita empate com ~30% de chance (mais provável se estiver em desvantagem)

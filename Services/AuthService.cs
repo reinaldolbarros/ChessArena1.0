@@ -39,6 +39,11 @@ public class AuthService
     public string Email  => Db?.Auth.CurrentUser?.Email ?? "";
     public string UserId => Db?.Auth.CurrentUser?.Id    ?? "";
 
+    /// <summary>True se a conta já tem senha própria (login por e-mail) — falso pra quem
+    /// entrou só pelo Google, já que aí não existe senha nenhuma pra "trocar".</summary>
+    public bool HasPasswordIdentity =>
+        Db?.Auth.CurrentUser?.Identities?.Any(i => i.Provider == "email") ?? false;
+
     public string Username
     {
         get
@@ -227,6 +232,17 @@ public class AuthService
             return (true, "");
         }
         catch { return (false, "Não foi possível alterar a senha."); }
+    }
+
+    // ── Criar senha (contas que só têm login pelo Google, sem senha prévia) ───
+    public async Task<(bool Ok, string Error)> TrySetInitialPasswordAsync(string newPassword)
+    {
+        try
+        {
+            await Db.Auth.Update(new Supabase.Gotrue.UserAttributes { Password = newPassword });
+            return (true, "");
+        }
+        catch { return (false, "Não foi possível criar a senha."); }
     }
 
     // ── Logout ────────────────────────────────────────────────────────────────

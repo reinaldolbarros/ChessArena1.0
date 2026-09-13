@@ -93,6 +93,7 @@ public partial class CareerPage : ContentPage
         PlayBtn.IsVisible            = false;
         ResultSection.IsVisible      = false;
         NextBtn.IsVisible            = false;
+        RestartTournamentLabel.IsVisible = false;
     }
 
     // ── Tempo por jogador ─────────────────────────────────────────────────────
@@ -118,10 +119,11 @@ public partial class CareerPage : ContentPage
 
     private void ShowInProgress(CareerTournamentState t)
     {
-        WelcomeSection.IsVisible     = false;
-        ResultSection.IsVisible      = false;
-        NextBtn.IsVisible            = false;
-        TimeControlSection.IsVisible = true;
+        WelcomeSection.IsVisible       = false;
+        ResultSection.IsVisible        = false;
+        NextBtn.IsVisible              = false;
+        TimeControlSection.IsVisible   = true;
+        RestartTournamentLabel.IsVisible = true;
 
         switch (t.Format)
         {
@@ -129,6 +131,19 @@ public partial class CareerPage : ContentPage
             case CareerFormat.Elimination: ShowCopaInProgress(t);        break;
             case CareerFormat.BestOfN:     ShowMundialInProgress(t);     break;
         }
+    }
+
+    private async void OnRestartTournamentTapped(object? sender, TappedEventArgs e)
+    {
+        bool confirm = await DisplayAlert("Reiniciar torneio",
+            "As rodadas já jogadas nesse torneio serão descartadas e um novo confronto será sorteado, no mesmo nível. Continuar?",
+            "Reiniciar", "Cancelar");
+        if (!confirm) return;
+
+        var prog = Svc.Progress;
+        if (prog.ActiveTournament == null) return;
+        Svc.RestartActiveTournament(prog);
+        RefreshUI();
     }
 
     private void ShowSwissInProgress(CareerTournamentState t)
@@ -204,10 +219,11 @@ public partial class CareerPage : ContentPage
 
     private void ShowResult(CareerTournamentState t, CareerProgress prog)
     {
-        WelcomeSection.IsVisible     = false;
-        TimeControlSection.IsVisible = false;
-        OpponentSection.IsVisible    = false;
-        PlayBtn.IsVisible            = false;
+        WelcomeSection.IsVisible       = false;
+        TimeControlSection.IsVisible   = false;
+        OpponentSection.IsVisible      = false;
+        PlayBtn.IsVisible              = false;
+        RestartTournamentLabel.IsVisible = false;
 
         // Show format-specific summary alongside result
         StandingsSection.IsVisible = t.Format == CareerFormat.Swiss;
@@ -345,6 +361,7 @@ public partial class CareerPage : ContentPage
         TimeControlSection.IsVisible = false;
         OpponentSection.IsVisible    = false;
         PlayBtn.IsVisible            = false;
+        RestartTournamentLabel.IsVisible = false;
         ResultSection.IsVisible    = true;
         ResultIcon.Text            = "🏆";
         ResultTitle.Text           = "Campeão Mundial!";

@@ -45,6 +45,7 @@ public partial class GamePage : ContentPage
         _vm.DrawOfferRequested  += OnDrawOfferRequested;
         _vm.PropertyChanged     += OnVmPropertyChanged;
         _vm.RequestHandoff      += ShowHandoffOverlay;
+        _vm.DrawOfferedByOpponent += OnDrawOfferedByOpponent;
 
         _selectedDiff        = Preferences.Default.Get("AiDifficulty", 0);
         _selectedTimeMinutes = Preferences.Default.Get("GameTimeMinutes", 0);
@@ -109,7 +110,17 @@ public partial class GamePage : ContentPage
             BlackPlayerLabel.Text = state.OnlinePlayerIsWhite
                 ? $"♟ {oppName} (Pretas)"
                 : $"♟ {myName} (Pretas)";
-            _vm.StartTournamentGame(oppName, state.OnlineTimeMinutes, 3);
+
+            var gameId = state.PendingOnlineGameId;
+            var game   = !string.IsNullOrEmpty(gameId) ? await state.OnlineGame.LoadGameAsync(gameId) : null;
+            if (game == null)
+            {
+                await DisplayAlert("Erro", "Não foi possível carregar a partida online.", "OK");
+                await Shell.Current.GoToAsync("..");
+                return;
+            }
+            state.OnlineGame.Subscribe(gameId!);
+            _vm.StartOnlineGame(game, state.OnlineGame, state.OnlinePlayerIsWhite, oppName);
         }
         else if (state.PendingFriendGame)
         {
@@ -175,7 +186,6 @@ public partial class GamePage : ContentPage
         starsEarned += state.Daily.RecordGamePlayed();
 
         bool isDraw = _vm.StatusMessage.Contains("Empate");
-        int  eloDelta = 0;
 
         if (state.IsCareerGame)
         {
@@ -189,10 +199,11 @@ public partial class GamePage : ContentPage
         }
         else if (state.IsOnlineGame)
         {
-            int oppElo = state.OnlineMatch.State.OpponentRating;
-            eloDelta   = state.Profile.UpdateElo(oppElo, humanWon, isDraw);
-            if (humanWon)     { state.Profile.RecordWin(); starsEarned += state.Daily.RecordWin(); }
-            else if (!isDraw)   state.Profile.RecordLoss();
+            // O Elo de partidas online é decidido pelo servidor (ver supabase_schema_online.sql
+            // / finalize_game), nunca calculado aqui no cliente — o "Jogar Online" por
+            // matchmaking aleatório ainda está mockado (Stockfish disfarçado de adversário),
+            // então, propositalmente, NÃO mexe em rating nenhum enquanto isso.
+            if (humanWon)     starsEarned += state.Daily.RecordWin();
         }
 
         if (starsEarned > 0) state.Stars.Add(starsEarned);
@@ -234,20 +245,10 @@ public partial class GamePage : ContentPage
             ResultTitle.Text  = humanWon ? "Vitória!" : isDraw ? "Empate" : "Derrota";
             ResultDetail.Text = _vm.StatusMessage;
 
-            if (state.IsOnlineGame)
-            {
-                int oldPoints = state.Profile.Points - eloDelta;
-                string eloSign2 = eloDelta >= 0 ? "+" : "";
-                ResultOldRating.Text        = $"{oldPoints}";
-                ResultNewRating.Text        = $"{state.Profile.Points}";
-                ResultRatingDelta.Text      = $"{eloSign2}{eloDelta}";
-                ResultRatingDelta.TextColor = eloDelta >= 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FF5252");
-                ResultRatingRow.IsVisible   = true;
-            }
-            else
-            {
-                ResultRatingRow.IsVisible = false;
-            }
+            // Rating de partida online é lido de volta do servidor (perfil recarregado após
+            // o jogo), não computado aqui — enquanto o "Jogar Online" por matchmaking ainda
+            // for mockado, não existe rating de verdade pra mostrar nesse painel.
+            ResultRatingRow.IsVisible = false;
             ResultSetupBtn.IsVisible = false;
 
             if (state.IsCareerGame)
@@ -320,7 +321,8 @@ public partial class GamePage : ContentPage
         {
             var state = AppState.Current;
 
-            // Registra W/L e atualiza Elo
+            // Registra W/L — Elo NÃO muda contra o bot (só em partidas online reais, ver
+            // supabase_schema_online.sql/finalize_game); rating só pode mudar pelo servidor.
             bool isDraw2 = _vm.StatusMessage.Contains("Empate");
             int  starsNow = 0;
             starsNow += state.Daily.RecordGamePlayed();
@@ -329,21 +331,11 @@ public partial class GamePage : ContentPage
 
             if (starsNow > 0) state.Stars.Add(starsNow);
 
-            int aiDepth   = DiffDepths[_selectedDiff];
-            int oppElo    = ProfileService.EloRatingForAI(aiDepth);
-            int eloChange = state.Profile.UpdateElo(oppElo, humanWon, isDraw2);
-
             // Painel de resultado
             ApplyResultColors(humanWon, isDraw2);
             ResultTitle.Text  = humanWon ? "Vitória!" : isDraw2 ? "Empate" : "Derrota";
             ResultDetail.Text = _vm.StatusMessage;
-            string eloSign = eloChange >= 0 ? "+" : "";
-            int oldPoints = state.Profile.Points - eloChange;
-            ResultOldRating.Text        = $"{oldPoints}";
-            ResultNewRating.Text        = $"{state.Profile.Points}";
-            ResultRatingDelta.Text      = $"{eloSign}{eloChange}";
-            ResultRatingDelta.TextColor = eloChange >= 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FF5252");
-            ResultRatingRow.IsVisible   = true;
+            ResultRatingRow.IsVisible   = false;
             string timeLabel = _selectedTimeMinutes == 0 ? "sem relógio" : $"{_selectedTimeMinutes} min";
             ResultActionBtn.Text           = $"Nova partida\n{timeLabel}";
             ResultActionBtn.HeightRequest  = 58;
@@ -574,6 +566,14 @@ public partial class GamePage : ContentPage
         return aiAccepts;
     }
 
+    // Partida online real: o adversário (remoto) ofereceu empate — pergunta pro jogador local.
+    private async void OnDrawOfferedByOpponent(string opponentName)
+    {
+        bool accept = await DisplayAlert("Proposta de Empate",
+            $"{opponentName} ofereceu empate. Aceitar?", "Aceitar", "Recusar");
+        _vm.RespondToDrawOffer(accept);
+    }
+
     private async void OnNewOnlineClicked(object? sender, EventArgs e)
     {
         var state = AppState.Current;
@@ -642,14 +642,25 @@ public partial class GamePage : ContentPage
     {
         _selectedDiff = idx;
         Preferences.Default.Set("AiDifficulty", idx);
-        DiffLabel.Text = $"Dificuldade: {DiffLabels[idx]}";
+        DiffLabel.FormattedText = BuildPillText("Dificuldade: ", DiffLabels[idx]);
     }
 
     private void SelectStyle(int idx)
     {
         _selectedStyle = idx;
-        StyleLabel.Text = $"Estilo: {StyleIcons[idx]} {StyleLabels[idx]}";
+        StyleLabel.FormattedText = BuildPillText("Estilo: ", $"{StyleIcons[idx]} {StyleLabels[idx]}");
     }
+
+    // Rótulo ("Dificuldade:"/"Estilo:") num tom neutro, valor escolhido no azul de destaque —
+    // antes os dois vinham na mesma cor e ficava difícil separar um do outro.
+    private static FormattedString BuildPillText(string label, string value) => new()
+    {
+        Spans =
+        {
+            new Span { Text = label, TextColor = Color.FromArgb("#8A9EBE"), FontAttributes = FontAttributes.Bold },
+            new Span { Text = value, TextColor = Color.FromArgb("#4AA3FF"), FontAttributes = FontAttributes.Bold },
+        }
+    };
 
     // 0 = sem relógio; até 30 min, mesmo teto do Jogar Online (ver RandomMatchPage).
     private const int MinCasualTime = 0;

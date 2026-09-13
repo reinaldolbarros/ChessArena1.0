@@ -1,5 +1,6 @@
 using ChessMAUI.Models;
 using ChessMAUI.Services;
+using Supabase.Realtime.PostgresChanges;
 using static Supabase.Postgrest.Constants;
 
 namespace ChessMAUI.Views;
@@ -11,17 +12,13 @@ public partial class FriendInvitePage : ContentPage
     private const int    MaxTime       = 20;
     private const int    CodeExpiryMin = 10;
 
-    // ── Fallback em memória (quando Supabase não disponível) ──────────────────
-    private static readonly Dictionary<string, PendingChallenge> _pending = [];
     private static readonly char[] CodeAlphabet =
         "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray(); // sem I, O, 0, 1
 
-    private record PendingChallenge(string ChallengerName, int TimeMinutes, DateTime ExpiresAt);
-
     // ── Estado da tela ────────────────────────────────────────────────────────
-    private enum FriendMode { SameDevice, OnlineCreate, OnlineJoin }
+    private enum FriendMode { OnlineCreate, OnlineJoin }
 
-    private FriendMode         _mode           = FriendMode.SameDevice;
+    private FriendMode         _mode = FriendMode.OnlineCreate;
     private int                _selectedMinutes;
     private bool               _codeMade;
     private string?            _myCode;
@@ -36,52 +33,30 @@ public partial class FriendInvitePage : ContentPage
 
         var profile = AppState.Current.Profile;
         if (!AppState.Current.Auth.IsAnonymous && !string.IsNullOrWhiteSpace(profile.Name))
-        {
-            Player1Entry.Text        = profile.Name;
             ChallengerNameEntry.Text = profile.Name;
-        }
 
         SetTime(Preferences.Default.Get(PrefKeyTime, 0));
-        SetMode(FriendMode.SameDevice);
-        UpdateColorInfo();
-        PurgeStaleCodes();
+        SetSubMode(FriendMode.OnlineCreate);
+
+        // Se o app foi aberto por um link de convite (chessarena://invite?code=...) antes de
+        // chegar aqui, o código já está esperando — preenche e tenta aceitar sozinho.
+        var pendingCode = AppState.Current.PendingInviteCode;
+        if (!string.IsNullOrEmpty(pendingCode))
+        {
+            AppState.Current.PendingInviteCode = null;
+            SetSubMode(FriendMode.OnlineJoin);
+            CodeEntry.Text = pendingCode;
+            _ = SearchOrAccept();
+        }
     }
 
-    // ── Troca de modo principal ───────────────────────────────────────────────
-
-    private void OnTabSameTelaTapped(object? sender, TappedEventArgs e) =>
-        SetMode(FriendMode.SameDevice);
-
-    private void OnTabOnlineTapped(object? sender, TappedEventArgs e) =>
-        SetMode(FriendMode.OnlineCreate);
+    // ── Troca de sub-modo ──────────────────────────────────────────────────────
 
     private void OnSubTabCriarTapped(object? sender, TappedEventArgs e) =>
         SetSubMode(FriendMode.OnlineCreate);
 
     private void OnSubTabEntrarTapped(object? sender, TappedEventArgs e) =>
         SetSubMode(FriendMode.OnlineJoin);
-
-    private void SetMode(FriendMode mode)
-    {
-        bool isSame = mode == FriendMode.SameDevice;
-        ApplyTabStyle(TabSameTelaCard, TabSameTelaLabel, isSame);
-        ApplyTabStyle(TabOnlineCard,   TabOnlineLabel,  !isSame);
-
-        SameDeviceSection.IsVisible = isSame;
-        OnlineSection.IsVisible     = !isSame;
-
-        if (isSame)
-        {
-            _mode              = FriendMode.SameDevice;
-            _codeMade          = false;
-            TimeCard.IsVisible = true;
-            UpdateActionBtn();
-        }
-        else
-        {
-            SetSubMode(FriendMode.OnlineCreate);
-        }
-    }
 
     private void SetSubMode(FriendMode sub)
     {
@@ -98,8 +73,8 @@ public partial class FriendInvitePage : ContentPage
         if (isCriar)
         {
             CodeDisplayCard.IsVisible = false;
-            _codeMade          = false;
-            _myCode            = null;
+            _codeMade = false;
+            _myCode   = null;
         }
         else
         {
@@ -125,9 +100,6 @@ public partial class FriendInvitePage : ContentPage
     {
         (ActionBtn.Text, ActionBtn.BackgroundColor, ActionBtn.IsEnabled) = _mode switch
         {
-            FriendMode.SameDevice =>
-                ("▶  Iniciar Partida",    Color.FromArgb("#1F6B36"), true),
-
             FriendMode.OnlineCreate when !_codeMade =>
                 ("Gerar Código",          Color.FromArgb("#2A67B1"), true),
 
@@ -159,24 +131,8 @@ public partial class FriendInvitePage : ContentPage
         TimeValueLabel.Text = unlimited ? "∞" : _selectedMinutes.ToString();
         TimeUnitLabel.Text  = unlimited ? "sem limite" : "minuto(s)";
 
-
         BtnDecrease.IsEnabled = _selectedMinutes > 0;
         BtnIncrease.IsEnabled = _selectedMinutes < MaxTime;
-    }
-
-
-    // ── Info de cores ─────────────────────────────────────────────────────────
-
-    private void OnNamesChanged(object? sender, TextChangedEventArgs e) => UpdateColorInfo();
-
-    private void UpdateColorInfo()
-    {
-        bool   p1White = AppState.Current.FriendGameCount % 2 == 0;
-        string p1      = string.IsNullOrWhiteSpace(Player1Entry.Text) ? "J1" : Player1Entry.Text.Trim();
-        string p2      = string.IsNullOrWhiteSpace(Player2Entry.Text) ? "J2" : Player2Entry.Text.Trim();
-        string white   = p1White ? p1 : p2;
-        string black   = p1White ? p2 : p1;
-        ColorInfoLabel.Text = $"Nesta partida: ♙ {white} (Brancas)  ·  ♟ {black} (Pretas)";
     }
 
     // ── Dispatcher do botão de ação ───────────────────────────────────────────
@@ -185,27 +141,9 @@ public partial class FriendInvitePage : ContentPage
     {
         switch (_mode)
         {
-            case FriendMode.SameDevice:   StartSameDeviceGame();        break;
             case FriendMode.OnlineCreate: await GenerateChallengeCode(); break;
             case FriendMode.OnlineJoin:   await SearchOrAccept();        break;
         }
-    }
-
-    // ── Fluxo: Mesma Tela ─────────────────────────────────────────────────────
-
-    private async void StartSameDeviceGame()
-    {
-        string p1    = string.IsNullOrWhiteSpace(Player1Entry.Text) ? "Jogador 1" : Player1Entry.Text.Trim();
-        string p2    = string.IsNullOrWhiteSpace(Player2Entry.Text) ? "Jogador 2" : Player2Entry.Text.Trim();
-        var    state = AppState.Current;
-
-        state.PendingFriendGame     = true;
-        state.PendingTournamentGame = false;
-        state.FriendPlayer1Name     = p1;
-        state.FriendOpponentName    = p2;
-        state.FriendTimeMinutes     = _selectedMinutes;
-
-        await Shell.Current.GoToAsync("GamePage");
     }
 
     // ── Fluxo: Criar código ───────────────────────────────────────────────────
@@ -214,41 +152,37 @@ public partial class FriendInvitePage : ContentPage
     {
         if (_codeMade) return;
 
+        var svc = SupabaseService.Instance;
+        if (!svc.IsReady)
+        {
+            await DisplayAlert("Sem conexão", "Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.", "OK");
+            return;
+        }
+
         string challenger = string.IsNullOrWhiteSpace(ChallengerNameEntry.Text)
             ? (AppState.Current.Profile.Name ?? "Desafiante")
             : ChallengerNameEntry.Text.Trim();
 
         _myCode = MakeCode();
 
-        var svc = SupabaseService.Instance;
-        if (svc.IsReady)
+        try
         {
-            try
+            var challenge = new SupabaseChallenge
             {
-                var challenge = new SupabaseChallenge
-                {
-                    Code           = _myCode,
-                    ChallengerId   = AppState.Current.Auth.UserId,
-                    ChallengerName = challenger,
-                    TimeMinutes    = _selectedMinutes,
-                    Status         = "pending",
-                    ExpiresAt      = DateTime.UtcNow.AddMinutes(CodeExpiryMin),
-                };
-                await svc.Client.From<SupabaseChallenge>().Insert(challenge);
-            }
-            catch
-            {
-                // Supabase offline → guarda em memória como fallback
-                _pending[_myCode] = new PendingChallenge(
-                    challenger, _selectedMinutes,
-                    DateTime.UtcNow.AddMinutes(CodeExpiryMin));
-            }
+                Code           = _myCode,
+                ChallengerId   = AppState.Current.Auth.UserId,
+                ChallengerName = challenger,
+                TimeMinutes    = _selectedMinutes,
+                Status         = "pending",
+                ExpiresAt      = DateTime.UtcNow.AddMinutes(CodeExpiryMin),
+            };
+            await svc.Client.From<SupabaseChallenge>().Insert(challenge);
         }
-        else
+        catch
         {
-            _pending[_myCode] = new PendingChallenge(
-                challenger, _selectedMinutes,
-                DateTime.UtcNow.AddMinutes(CodeExpiryMin));
+            await DisplayAlert("Erro", "Não foi possível criar o desafio. Tente novamente.", "OK");
+            _myCode = null;
+            return;
         }
 
         GeneratedCodeLabel.Text   = _myCode;
@@ -257,6 +191,28 @@ public partial class FriendInvitePage : ContentPage
         WaitingSpinner.IsVisible  = true;
         _codeMade = true;
         UpdateActionBtn();
+
+        SubscribeToOwnChallenge(_myCode);
+    }
+
+    /// <summary>Assina a própria linha em "challenges" — quando o amigo aceitar (status vira
+    /// "accepted" e game_id é preenchido por accept_challenge()), entra na partida real.</summary>
+    private void SubscribeToOwnChallenge(string code)
+    {
+        try
+        {
+            SupabaseService.Instance.Client
+                .From<SupabaseChallenge>()
+                .On(PostgresChangesOptions.ListenType.Updates, async (_, change) =>
+                {
+                    var row = change.Model<SupabaseChallenge>();
+                    if (row == null || row.Code != code) return;
+                    if (row.Status != "accepted" || string.IsNullOrEmpty(row.GameId)) return;
+
+                    await MainThread.InvokeOnMainThreadAsync(() => EnterOnlineGame(row.GameId!, null));
+                });
+        }
+        catch { }
     }
 
     private async void OnCopyCodeClicked(object? sender, EventArgs e)
@@ -271,11 +227,13 @@ public partial class FriendInvitePage : ContentPage
     private async void OnShareCodeClicked(object? sender, EventArgs e)
     {
         if (_myCode is null) return;
+        // Link único (mesma página pra qualquer convite, o código vai na URL) — quem já tem o
+        // app abre direto na tela de aceitar; quem não tem vê o código e como baixar o app.
+        string link = $"https://claude.ai/code/artifact/c3b8d9d0-bf88-44e4-9d93-220c361e7757?code={_myCode}";
         await Share.Default.RequestAsync(new ShareTextRequest
         {
             Title = "Desafio de Xadrez",
-            Text  = $"🎯 Vamos jogar xadrez!\n\nCódigo do desafio: {_myCode}\n\n"
-                  + $"Abra o app → Com Amigo → Código Online → Entrar com Código",
+            Text  = $"🎯 Vamos jogar xadrez! Toque no link pra aceitar meu desafio (código {_myCode}):\n{link}",
         });
     }
 
@@ -304,16 +262,13 @@ public partial class FriendInvitePage : ContentPage
         }
 
         var svc = SupabaseService.Instance;
-        if (svc.IsReady)
+        if (!svc.IsReady)
         {
-            await SearchOnSupabase(code);
-        }
-        else
-        {
-            PurgeStaleCodes();
-            SearchInMemory(code);
+            await DisplayAlert("Sem conexão", "Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.", "OK");
+            return;
         }
 
+        await SearchOnSupabase(code);
         UpdateActionBtn();
     }
 
@@ -345,19 +300,6 @@ public partial class FriendInvitePage : ContentPage
         }
     }
 
-    private void SearchInMemory(string code)
-    {
-        if (_pending.TryGetValue(code, out var ch))
-        {
-            ShowFoundChallenge(ch.ChallengerName, ch.TimeMinutes);
-        }
-        else
-        {
-            ChallengeFoundCard.IsVisible    = false;
-            ChallengeNotFoundCard.IsVisible = true;
-        }
-    }
-
     private void ShowFoundChallenge(string name, int minutes)
     {
         ChallengeInfoLabel.Text         = $"De: {name}";
@@ -370,40 +312,74 @@ public partial class FriendInvitePage : ContentPage
 
     private async Task AcceptChallenge()
     {
-        string challengerName;
-        int    timeMinutes;
-
+        if (_foundChallenge == null) return;
         var svc = SupabaseService.Instance;
-        if (_foundChallenge != null && svc.IsReady)
+        if (!svc.IsReady)
         {
-            // Marca como aceito no Supabase
-            try
-            {
-                _foundChallenge.Status = "accepted";
-                await svc.Client.From<SupabaseChallenge>().Upsert(_foundChallenge);
-            }
-            catch { }
+            await DisplayAlert("Sem conexão", "Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.", "OK");
+            return;
+        }
 
-            challengerName = _foundChallenge.ChallengerName;
-            timeMinutes    = _foundChallenge.TimeMinutes;
-        }
-        else
+        try
         {
-            string code = (CodeEntry.Text ?? "").Trim().ToUpperInvariant();
-            if (!_pending.TryGetValue(code, out var ch)) return;
-            _pending.Remove(code);
-            challengerName = ch.ChallengerName;
-            timeMinutes    = ch.TimeMinutes;
+            // accept_challenge() já cria a partida real (games) e devolve o id — nenhuma
+            // escrita direta do cliente na tabela challenges.
+            var response = await svc.Client.Rpc("accept_challenge",
+                new Dictionary<string, object> { ["p_code"] = _foundChallenge.Code });
+            var gameId = response?.Content?.Trim('"');
+            if (string.IsNullOrEmpty(gameId))
+            {
+                await DisplayAlert("Erro", "Não foi possível aceitar o desafio.", "OK");
+                return;
+            }
+
+            await EnterOnlineGame(gameId, _foundChallenge.ChallengerName);
         }
+        catch
+        {
+            await DisplayAlert("Erro", "Código inválido, expirado, ou você já usou esse código.", "OK");
+        }
+    }
+
+    // ── Entrar na partida real ────────────────────────────────────────────────
+
+    private async Task EnterOnlineGame(string gameId, string? knownOpponentName)
+    {
+        var online = AppState.Current.OnlineGame;
+        var game   = await online.LoadGameAsync(gameId);
+        if (game == null)
+        {
+            await DisplayAlert("Erro", "Não foi possível carregar a partida.", "OK");
+            return;
+        }
+
+        string myId         = AppState.Current.Auth.UserId;
+        bool   playerIsWhite = game.WhiteId == myId;
+        string opponentId    = playerIsWhite ? game.BlackId : game.WhiteId;
+        string opponentName  = knownOpponentName ?? await LookupProfileNameAsync(opponentId);
 
         var state = AppState.Current;
-        state.PendingFriendGame     = true;
-        state.PendingTournamentGame = false;
-        state.FriendPlayer1Name     = challengerName;
-        state.FriendOpponentName    = state.Profile.Name ?? "Amigo";
-        state.FriendTimeMinutes     = timeMinutes;
+        state.PendingOnlineGameId   = gameId;
+        state.IsOnlineGame          = true;
+        state.PendingOnlineGame     = true;
+        state.OnlineOpponentName    = opponentName;
+        state.OnlineTimeMinutes     = game.TimeMinutes;
+        state.OnlinePlayerIsWhite   = playerIsWhite;
 
         await Shell.Current.GoToAsync("GamePage");
+    }
+
+    private static async Task<string> LookupProfileNameAsync(string userId)
+    {
+        try
+        {
+            var row = await SupabaseService.Instance.Client
+                .From<SupabaseProfile>()
+                .Where(p => p.Id == userId)
+                .Single();
+            return string.IsNullOrWhiteSpace(row?.Name) ? "Adversário" : row!.Name;
+        }
+        catch { return "Adversário"; }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -412,11 +388,4 @@ public partial class FriendInvitePage : ContentPage
         new(Enumerable.Range(0, 6)
             .Select(_ => CodeAlphabet[Random.Shared.Next(CodeAlphabet.Length)])
             .ToArray());
-
-    private static void PurgeStaleCodes()
-    {
-        var now     = DateTime.UtcNow;
-        var expired = _pending.Keys.Where(k => _pending[k].ExpiresAt < now).ToList();
-        foreach (var k in expired) _pending.Remove(k);
-    }
 }

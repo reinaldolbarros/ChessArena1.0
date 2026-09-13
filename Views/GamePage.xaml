@@ -482,9 +482,13 @@
                 <!-- Configuração de dificuldade -->
                 <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
                         StrokeShape="RoundRectangle 10" Padding="14,10">
-                    <Label x:Name="DiffLabel" Text="Dificuldade: Fácil"
-                           TextColor="#4AA3FF" FontAttributes="Bold" FontSize="15"
-                           VerticalOptions="Center">
+                    <Label x:Name="DiffLabel" FontSize="15" VerticalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Dificuldade: " TextColor="#8A9EBE" FontAttributes="Bold"/>
+                                <Span Text="Fácil" TextColor="#4AA3FF" FontAttributes="Bold"/>
+                            </FormattedString>
+                        </Label.FormattedText>
                         <Label.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnDiffSettingsClicked"/>
                         </Label.GestureRecognizers>
@@ -494,9 +498,13 @@
                 <!-- Estilo do bot — mesmo padrão do pill de Dificuldade acima -->
                 <Border BackgroundColor="#0D1828" Stroke="#1A2840" StrokeThickness="1"
                         StrokeShape="RoundRectangle 10" Padding="14,10">
-                    <Label x:Name="StyleLabel" Text="Estilo: Equilibrado"
-                           TextColor="#4AA3FF" FontAttributes="Bold" FontSize="15"
-                           VerticalOptions="Center">
+                    <Label x:Name="StyleLabel" FontSize="15" VerticalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Estilo: " TextColor="#8A9EBE" FontAttributes="Bold"/>
+                                <Span Text="Equilibrado" TextColor="#4AA3FF" FontAttributes="Bold"/>
+                            </FormattedString>
+                        </Label.FormattedText>
                         <Label.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnStyleSettingsClicked"/>
                         </Label.GestureRecognizers>

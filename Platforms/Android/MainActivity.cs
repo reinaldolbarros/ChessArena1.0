@@ -21,6 +21,12 @@ namespace ChessMAUI;
     new[] { Intent.ActionView },
     Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
     DataScheme = "chessarena", DataHost = "reset-callback")]
+// Link de convite de amigo (chessarena://invite?code=XXXXXX), aberto pela página web do
+// convite (ver Views/FriendInvitePage.xaml.cs OnShareCodeClicked).
+[IntentFilter(
+    new[] { Intent.ActionView },
+    Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+    DataScheme = "chessarena", DataHost = "invite")]
 public class MainActivity : MauiAppCompatActivity
 {
     protected override void OnCreate(Bundle? savedInstanceState)

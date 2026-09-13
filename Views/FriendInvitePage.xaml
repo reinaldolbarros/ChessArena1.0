@@ -15,97 +15,12 @@
                        TextColor="#F2F5F8" FontSize="24" FontAttributes="Bold"
                        Margin="0,0,0,2"/>
 
-                <!-- ══ Seletores de modo ══ -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                    <Border x:Name="TabSameTelaCard"
-                            BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.5"
-                            StrokeShape="RoundRectangle 14" Padding="0,14">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnTabSameTelaTapped"/>
-                        </Border.GestureRecognizers>
-                        <VerticalStackLayout HorizontalOptions="Center" Spacing="3">
-                            <Label Text="♟" FontSize="22" HorizontalTextAlignment="Center"
-                                   TextColor="#4AA3FF"/>
-                            <Label x:Name="TabSameTelaLabel" Text="Na Mesa"
-                                   TextColor="#4AA3FF" FontSize="13" FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center"/>
-                            <Label Text="celular entre os dois" TextColor="#4A6A8A" FontSize="11"
-                                   HorizontalTextAlignment="Center"/>
-                        </VerticalStackLayout>
-                    </Border>
-                    <Border Grid.Column="1" x:Name="TabOnlineCard"
-                            BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14" Padding="0,14">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnTabOnlineTapped"/>
-                        </Border.GestureRecognizers>
-                        <VerticalStackLayout HorizontalOptions="Center" Spacing="3">
-                            <Label Text="🔗" FontSize="20" HorizontalTextAlignment="Center"/>
-                            <Label x:Name="TabOnlineLabel" Text="Online"
-                                   TextColor="#6A8AAA" FontSize="13" FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center"/>
-                            <Label Text="cada um no seu celular" TextColor="#3A5070" FontSize="11"
-                                   HorizontalTextAlignment="Center"/>
-                        </VerticalStackLayout>
-                    </Border>
-                </Grid>
-
-                <!-- ══ NA MESA ══ -->
-                <VerticalStackLayout x:Name="SameDeviceSection" Spacing="14">
-
-                    <!-- Dica discreta de orientação -->
-                    <Border BackgroundColor="#040E1A" Stroke="#1E3A5A" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 10" Padding="12,8">
-                        <Label Text="Coloque o celular deitado entre os dois jogadores. O tabuleiro vira automaticamente a cada lance — como no xadrez físico."
-                               TextColor="#4A6A8A" FontSize="12"
-                               HorizontalTextAlignment="Center"
-                               LineBreakMode="WordWrap"/>
-                    </Border>
-
-                    <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
-                            StrokeShape="RoundRectangle 16" Padding="16,14">
-                        <VerticalStackLayout Spacing="12">
-
-                            <VerticalStackLayout Spacing="6">
-                                <Label Text="JOGADOR 1 — BRANCAS" TextColor="#6A8AAA" FontSize="11"
-                                       FontAttributes="Bold" CharacterSpacing="1"/>
-                                <Border BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
-                                        StrokeShape="RoundRectangle 10" Padding="14,0">
-                                    <Entry x:Name="Player1Entry"
-                                           Placeholder="Nome" PlaceholderColor="#3A5070"
-                                           TextColor="#F2F5F8" FontSize="16"
-                                           HeightRequest="46" BackgroundColor="Transparent"
-                                           MaxLength="20" TextChanged="OnNamesChanged"/>
-                                </Border>
-                            </VerticalStackLayout>
-
-                            <BoxView Color="#1E3A5A" HeightRequest="1"/>
-
-                            <VerticalStackLayout Spacing="6">
-                                <Label Text="JOGADOR 2 — PRETAS" TextColor="#6A8AAA" FontSize="11"
-                                       FontAttributes="Bold" CharacterSpacing="1"/>
-                                <Border BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
-                                        StrokeShape="RoundRectangle 10" Padding="14,0">
-                                    <Entry x:Name="Player2Entry"
-                                           Placeholder="Nome" PlaceholderColor="#3A5070"
-                                           TextColor="#F2F5F8" FontSize="16"
-                                           HeightRequest="46" BackgroundColor="Transparent"
-                                           MaxLength="20" TextChanged="OnNamesChanged"/>
-                                </Border>
-                            </VerticalStackLayout>
-
-                            <Label x:Name="ColorInfoLabel" Text=""
-                                   TextColor="#6A8AAA" FontSize="12"
-                                   HorizontalTextAlignment="Center"
-                                   LineBreakMode="WordWrap"/>
-
-                        </VerticalStackLayout>
-                    </Border>
-
-                </VerticalStackLayout>
+                <Label Text="Desafie um amigo por um código — cada um joga no seu próprio celular."
+                       TextColor="#6A8AAA" FontSize="13"
+                       LineBreakMode="WordWrap" Margin="0,0,0,4"/>
 
                 <!-- ══ CÓDIGO ONLINE ══ -->
-                <VerticalStackLayout x:Name="OnlineSection" IsVisible="False" Spacing="14">
+                <VerticalStackLayout x:Name="OnlineSection" Spacing="14">
 
                     <!-- Sub-tabs -->
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="8">

@@ -51,7 +51,7 @@
 
 	<ItemGroup>
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0A1020" />
+		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#0A1020" />
 
 		<!-- Splash Screen desativado — SplashPage.xaml é usado no lugar -->
 		<!-- <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0A1020" BaseSize="512,512" /> -->

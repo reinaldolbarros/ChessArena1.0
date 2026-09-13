@@ -84,7 +84,7 @@
                 <Border x:Name="OnlineCard"
                         StrokeShape="RoundRectangle 20"
                         StrokeThickness="1" Stroke="#1A3A6A"
-                        HeightRequest="200" Padding="0">
+                        HeightRequest="168" Padding="0">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                             <GradientStop Color="#0D2244" Offset="0"/>
@@ -137,7 +137,7 @@
                 <Border x:Name="CareerCard"
                         StrokeShape="RoundRectangle 16"
                         StrokeThickness="1.5" Stroke="#4A3510"
-                        HeightRequest="132" Padding="0">
+                        HeightRequest="122" Padding="0">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                             <GradientStop Color="#14200E" Offset="0"/>
@@ -196,7 +196,7 @@
                     <Border Grid.Column="0" x:Name="IaCard"
                             StrokeShape="RoundRectangle 14"
                             StrokeThickness="1" Stroke="#1A2535"
-                            HeightRequest="100">
+                            HeightRequest="90">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#0D1C28" Offset="0"/>
@@ -207,9 +207,9 @@
                             <TapGestureRecognizer Tapped="OnQuickPlayTapped"/>
                         </Border.GestureRecognizers>
                         <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
-                                             Spacing="4">
+                                             Spacing="2">
                             <Image Source="chatgpt_robot_neon.png"
-                                   WidthRequest="48" HeightRequest="48"
+                                   WidthRequest="38" HeightRequest="38"
                                    Aspect="AspectFit" HorizontalOptions="Center"/>
                             <Label Text="Jogar contra"
                                    FontSize="11" TextColor="#8A9EBE"
@@ -224,7 +224,7 @@
                     <Border Grid.Column="1" x:Name="FriendCard"
                             StrokeShape="RoundRectangle 14"
                             StrokeThickness="1" Stroke="#1A2535"
-                            HeightRequest="100">
+                            HeightRequest="90">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#0D1C28" Offset="0"/>
@@ -235,9 +235,9 @@
                             <TapGestureRecognizer Tapped="OnFriendGameTapped"/>
                         </Border.GestureRecognizers>
                         <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
-                                             Spacing="4">
+                                             Spacing="2">
                             <Image Source="chatgpt_friends_neon.png"
-                                   WidthRequest="48" HeightRequest="48"
+                                   WidthRequest="38" HeightRequest="38"
                                    Aspect="AspectFit" HorizontalOptions="Center"/>
                             <Label Text="Jogar com"
                                    FontSize="11" TextColor="#8A9EBE"

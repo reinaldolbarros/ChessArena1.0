@@ -11,13 +11,20 @@ public static class DeepLinkRouter
 {
     public static void Handle(Uri uri)
     {
-        if (!string.Equals(uri.Host, "reset-callback", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(uri.Host, "reset-callback", StringComparison.OrdinalIgnoreCase))
+        {
+            var code = GetQueryParam(uri, "code");
+            if (!string.IsNullOrEmpty(code))
+                _ = AppState.Current.Auth.CompletePasswordRecoveryAsync(code);
             return;
+        }
 
-        var code = GetQueryParam(uri, "code");
-        if (string.IsNullOrEmpty(code)) return;
-
-        _ = AppState.Current.Auth.CompletePasswordRecoveryAsync(code);
+        if (string.Equals(uri.Host, "invite", StringComparison.OrdinalIgnoreCase))
+        {
+            var code = GetQueryParam(uri, "code");
+            if (!string.IsNullOrEmpty(code))
+                AppState.Current.PendingInviteCode = code.ToUpperInvariant();
+        }
     }
 
     private static string? GetQueryParam(Uri uri, string key)

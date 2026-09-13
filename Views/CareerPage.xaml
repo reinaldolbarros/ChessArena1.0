@@ -203,6 +203,14 @@
                     BackgroundColor="#2A67B1" TextColor="White"
                     FontAttributes="Bold" FontSize="16"
                     CornerRadius="14" HeightRequest="50"/>
+            <Label x:Name="RestartTournamentLabel" Text="Reiniciar torneio"
+                   IsVisible="False"
+                   TextColor="#6A8098" FontSize="13"
+                   HorizontalTextAlignment="Center">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnRestartTournamentTapped"/>
+                </Label.GestureRecognizers>
+            </Label>
         </VerticalStackLayout>
 
         <!-- ══ Confete de comemoração — só aparece ao se tornar Campeão Mundial ══ -->

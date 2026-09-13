@@ -32,4 +32,18 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("RandomMatchPage",  typeof(RandomMatchPage));
         Routing.RegisterRoute("GameReviewPage",   typeof(GameReviewPage));
     }
+
+    // Ranking e Perfil são abas do TabBar, não páginas empilhadas — trocar de aba não
+    // gera histórico de navegação sozinho. Sem isso, voltar (seta física, gesto ou botão)
+    // estando numa dessas abas fechava o app direto, em vez de voltar pro Início.
+    protected override bool OnBackButtonPressed()
+    {
+        var route = Shell.Current?.CurrentState?.Location?.OriginalString ?? "";
+        if (route.Contains("RankingPage") || route.Contains("ProfilePage"))
+        {
+            _ = Shell.Current!.GoToAsync("//LobbyPage");
+            return true;
+        }
+        return base.OnBackButtonPressed();
+    }
 }

@@ -48,6 +48,14 @@ public partial class LobbyPage : ContentPage
             return;
         }
 
+        // Link de convite de amigo aberto antes do app estar pronto pra navegar direto —
+        // agora que a Lobby carregou, manda pra tela de aceitar o código.
+        if (!string.IsNullOrEmpty(AppState.Current.PendingInviteCode))
+        {
+            await Shell.Current.GoToAsync("FriendInvitePage");
+            return;
+        }
+
         await RefreshUI();
     }
 
@@ -166,7 +174,7 @@ public partial class LobbyPage : ContentPage
         }
         else
         {
-            careerSub = "Do Torneio Local ao Campeonato Mundial";
+            careerSub = "Toque para começar sua jornada";
         }
         CareerSubLabel.Text = careerSub;
 
@@ -194,7 +202,7 @@ public partial class LobbyPage : ContentPage
         var profile = AppState.Current.Profile;
         var entries = await AppState.Current.Ranking.GetGlobalAsync(profile);
 
-        var top3 = entries.Take(3).ToList();
+        var top3 = entries.Take(5).ToList();
         foreach (var entry in top3)
             RankingPreviewList.Children.Add(BuildRankingPreviewRow(entry));
 
@@ -457,12 +465,22 @@ public partial class LobbyPage : ContentPage
             return;
         }
 
-        string? currentPass = await DisplayPromptAsync(
-            "Alterar Senha", "Senha atual:", maxLength: 64, keyboard: Keyboard.Default);
-        if (currentPass == null) return;
+        // Quem entrou só pelo Google nunca teve senha — não faz sentido pedir a "atual".
+        // Aqui só se cria uma senha nova, que passa a valer como uma segunda forma de
+        // entrar (além do Google), sem mexer em nada da conta Google de verdade.
+        bool creatingNew = !auth.HasPasswordIdentity;
+        string title = creatingNew ? "Criar Senha" : "Alterar Senha";
+
+        string? currentPass = "";
+        if (!creatingNew)
+        {
+            currentPass = await DisplayPromptAsync(
+                title, "Senha atual:", maxLength: 64, keyboard: Keyboard.Default);
+            if (currentPass == null) return;
+        }
 
         string? newPass = await DisplayPromptAsync(
-            "Alterar Senha", "Nova senha (mín. 6 caracteres):", maxLength: 64, keyboard: Keyboard.Default);
+            title, "Nova senha (mín. 6 caracteres):", maxLength: 64, keyboard: Keyboard.Default);
         if (newPass == null) return;
         if (newPass.Length < 6)
         {
@@ -471,7 +489,7 @@ public partial class LobbyPage : ContentPage
         }
 
         string? confirmPass = await DisplayPromptAsync(
-            "Alterar Senha", "Confirmar nova senha:", maxLength: 64, keyboard: Keyboard.Default);
+            title, "Confirmar nova senha:", maxLength: 64, keyboard: Keyboard.Default);
         if (confirmPass == null) return;
         if (newPass != confirmPass)
         {
@@ -479,18 +497,26 @@ public partial class LobbyPage : ContentPage
             return;
         }
 
-        var (ok, error) = await auth.TryUpdatePasswordAsync(currentPass, newPass);
+        var (ok, error) = creatingNew
+            ? await auth.TrySetInitialPasswordAsync(newPass)
+            : await auth.TryUpdatePasswordAsync(currentPass!, newPass);
         if (!ok)
         {
             await DisplayAlert("Erro", error, "OK");
             return;
         }
-        await DisplayAlert("✓ Concluído", "Sua senha foi alterada com sucesso.", "OK");
+        await DisplayAlert("✓ Concluído",
+            creatingNew
+                ? "Senha criada! Agora você também pode entrar com e-mail e senha, além do Google."
+                : "Sua senha foi alterada com sucesso.",
+            "OK");
     }
 
     private void OnMenuClicked(object? sender, EventArgs e)
     {
-        MenuChangePasswordItem.IsVisible = !AppState.Current.Auth.IsAnonymous;
+        var auth = AppState.Current.Auth;
+        MenuChangePasswordItem.IsVisible = !auth.IsAnonymous;
+        MenuChangePasswordItem.Text = auth.HasPasswordIdentity ? "Alterar Senha" : "Criar Senha";
         MenuDropdown.IsVisible    = true;
         MenuDismissOverlay.IsVisible = true;
     }
