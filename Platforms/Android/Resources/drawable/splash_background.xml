@@ -3,7 +3,7 @@
     <item android:drawable="@color/splashBackground"/>
     <item>
         <bitmap android:src="@drawable/chessarena_splash"
-                android:gravity="center"
+                android:gravity="fill_horizontal|center_vertical"
                 android:antialias="true"/>
     </item>
 </layer-list>

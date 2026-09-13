@@ -29,6 +29,42 @@ public class OnlineGameService
         catch { return null; }
     }
 
+    /// <summary>Carrega a partida, decide cor/adversário e preenche o AppState — usado tanto
+    /// por "Jogar com Amigo" quanto por "Jogar Online" pra entrar na mesma tela de jogo real,
+    /// evitando que cada fluxo duplique (e esqueça algum campo) essa lógica na mão.</summary>
+    public async Task<bool> EnterGameAsync(string gameId, string? knownOpponentName)
+    {
+        var game = await LoadGameAsync(gameId);
+        if (game == null) return false;
+
+        string myId          = AppState.Current.Auth.UserId;
+        bool   playerIsWhite = game.WhiteId == myId;
+        string opponentId    = playerIsWhite ? game.BlackId : game.WhiteId;
+        string opponentName  = knownOpponentName ?? await LookupProfileNameAsync(opponentId);
+
+        var state = AppState.Current;
+        state.PendingOnlineGameId = gameId;
+        state.IsOnlineGame        = true;
+        state.PendingOnlineGame   = true;
+        state.OnlineOpponentName  = opponentName;
+        state.OnlineTimeMinutes   = game.TimeMinutes;
+        state.OnlinePlayerIsWhite = playerIsWhite;
+        return true;
+    }
+
+    private static async Task<string> LookupProfileNameAsync(string userId)
+    {
+        try
+        {
+            var row = await SupabaseService.Instance.Client
+                .From<SupabaseProfile>()
+                .Where(p => p.Id == userId)
+                .Single();
+            return string.IsNullOrWhiteSpace(row?.Name) ? "Adversário" : row!.Name;
+        }
+        catch { return "Adversário"; }
+    }
+
     /// <summary>Assina mudanças na partida via Realtime. Chame uma vez, depois de LoadGameAsync.</summary>
     public void Subscribe(string gameId)
     {

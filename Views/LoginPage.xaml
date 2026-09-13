@@ -5,22 +5,15 @@
              Shell.NavBarIsVisible="False"
              BackgroundColor="#0A1020">
 
-    <ScrollView>
+    <ScrollView VerticalOptions="Center">
         <VerticalStackLayout Padding="28,44,28,32" Spacing="0">
 
             <!-- ══ Hero ══ -->
             <VerticalStackLayout Spacing="0" Margin="0,0,0,28">
-                <Image Source="chessarena_splash.png"
+                <Image Source="chessarena_icon.png"
                        Aspect="AspectFit"
-                       HeightRequest="180"
-                       HorizontalOptions="Center"
-                       Margin="0,0,0,12"/>
-                <Label Text="ChessArena"
-                       FontSize="32" FontAttributes="Bold" TextColor="White"
-                       HorizontalTextAlignment="Center" Margin="0,0,0,4"/>
-                <Label Text="Jogue · Evolua · Conquiste"
-                       FontSize="15" TextColor="#A8C0DC"
-                       HorizontalTextAlignment="Center"/>
+                       HeightRequest="230"
+                       HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
             <!-- ══ Formulário principal ══ -->

@@ -459,17 +459,12 @@
             <VerticalStackLayout Padding="28,32,28,40" Spacing="14"
                                  VerticalOptions="Center">
 
-                <!-- Peças decorativas -->
-                <HorizontalStackLayout HorizontalOptions="Center" Spacing="0">
-                    <Label Text="♚" FontSize="72" TextColor="White"
-                           VerticalOptions="End"/>
-                    <Label Text="♞" FontSize="64" TextColor="#1A1209"
-                           VerticalOptions="End" Margin="-20,0,0,0"/>
-                </HorizontalStackLayout>
-
-                <Label Text="ChessArena"
-                       TextColor="White" FontSize="26" FontAttributes="Bold"
-                       HorizontalTextAlignment="Center" Margin="0,0,0,16"/>
+                <!-- Ícone do app — mesma imagem usada na tela de login -->
+                <Image Source="chessarena_icon.png"
+                       Aspect="AspectFit"
+                       HeightRequest="170"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,16"/>
 
                 <!-- Botão iniciar -->
                 <Button Text="▶  INICIAR PARTIDA"

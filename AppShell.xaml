@@ -10,8 +10,8 @@
     Shell.TitleColor="White"
     Shell.DisabledColor="#AAAACC"
     Shell.TabBarBackgroundColor="#080E1A"
-    Shell.TabBarForegroundColor="#00E5FF"
-    Shell.TabBarTitleColor="#00E5FF"
+    Shell.TabBarForegroundColor="#8A9EBE"
+    Shell.TabBarTitleColor="#8A9EBE"
     Shell.TabBarUnselectedColor="#8A9EBE">
 
     <TabBar>

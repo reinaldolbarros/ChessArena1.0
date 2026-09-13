@@ -98,29 +98,12 @@ public partial class GamePage : ContentPage
         }
         else if (state.PendingOnlineGame)
         {
-            state.PendingOnlineGame = false;
-            SetupPanel.IsVisible    = false;
-            ResultPanel.IsVisible   = false;
-            Title = $"vs {state.OnlineOpponentName}";
-            string myName  = AppState.Current.Profile.Name;
-            string oppName = state.OnlineOpponentName;
-            WhitePlayerLabel.Text = state.OnlinePlayerIsWhite
-                ? $"♙ {myName} (Brancas)"
-                : $"♙ {oppName} (Brancas)";
-            BlackPlayerLabel.Text = state.OnlinePlayerIsWhite
-                ? $"♟ {oppName} (Pretas)"
-                : $"♟ {myName} (Pretas)";
-
-            var gameId = state.PendingOnlineGameId;
-            var game   = !string.IsNullOrEmpty(gameId) ? await state.OnlineGame.LoadGameAsync(gameId) : null;
-            if (game == null)
+            if (!await LoadPendingOnlineGameAsync())
             {
                 await DisplayAlert("Erro", "Não foi possível carregar a partida online.", "OK");
                 await Shell.Current.GoToAsync("..");
                 return;
             }
-            state.OnlineGame.Subscribe(gameId!);
-            _vm.StartOnlineGame(game, state.OnlineGame, state.OnlinePlayerIsWhite, oppName);
         }
         else if (state.PendingFriendGame)
         {
@@ -574,6 +557,35 @@ public partial class GamePage : ContentPage
         _vm.RespondToDrawOffer(accept);
     }
 
+    /// <summary>Carrega a partida real apontada por AppState.PendingOnlineGameId (Realtime +
+    /// GameViewModel) — usado tanto ao chegar na tela (OnAppearing) quanto ao buscar um novo
+    /// adversário sem sair dela (OnNewOnlineClicked), pra nunca duplicar essa lógica.</summary>
+    private async Task<bool> LoadPendingOnlineGameAsync()
+    {
+        var state = AppState.Current;
+        state.PendingOnlineGame = false;
+        SetupPanel.IsVisible    = false;
+        ResultPanel.IsVisible   = false;
+        Title = $"vs {state.OnlineOpponentName}";
+        string myName  = state.Profile.Name;
+        string oppName = state.OnlineOpponentName;
+        WhitePlayerLabel.Text = state.OnlinePlayerIsWhite
+            ? $"♙ {myName} (Brancas)"
+            : $"♙ {oppName} (Brancas)";
+        BlackPlayerLabel.Text = state.OnlinePlayerIsWhite
+            ? $"♟ {oppName} (Pretas)"
+            : $"♟ {myName} (Pretas)";
+
+        var gameId = state.PendingOnlineGameId;
+        var game   = !string.IsNullOrEmpty(gameId) ? await state.OnlineGame.LoadGameAsync(gameId) : null;
+        if (game == null) return false;
+
+        state.OnlineGame.Subscribe(gameId!);
+        _resultShownForGame = false;
+        _vm.StartOnlineGame(game, state.OnlineGame, state.OnlinePlayerIsWhite, oppName);
+        return true;
+    }
+
     private async void OnNewOnlineClicked(object? sender, EventArgs e)
     {
         var state = AppState.Current;
@@ -591,27 +603,20 @@ public partial class GamePage : ContentPage
             return;
         }
 
-        var s      = state.OnlineMatch.State;
-        string myName  = state.Profile.Name;
-        string oppName = s.OpponentName;
-
-        state.OnlineOpponentName  = oppName;
-        state.OnlinePlayerIsWhite = s.PlayerIsWhite;
-
-        WhitePlayerLabel.Text = s.PlayerIsWhite
-            ? $"♙ {myName} (Brancas)"
-            : $"♙ {oppName} (Brancas)";
-        BlackPlayerLabel.Text = s.PlayerIsWhite
-            ? $"♟ {oppName} (Pretas)"
-            : $"♟ {myName} (Pretas)";
+        var s  = state.OnlineMatch.State;
+        bool ok = await state.OnlineGame.EnterGameAsync(s.GameId, s.OpponentName)
+                  && await LoadPendingOnlineGameAsync();
 
         NewOnlineBtn.IsEnabled    = true;
         ResultActionBtn.IsEnabled = true;
-        NewOnlineBtn.IsVisible    = false;
-        ResultPanel.IsVisible     = false;
-        _resultShownForGame       = false;
-        Title = $"vs {oppName}";
-        _vm.StartTournamentGame(oppName, state.OnlineTimeMinutes, 3);
+
+        if (!ok)
+        {
+            await DisplayAlert("Erro", "Não foi possível carregar a nova partida.", "OK");
+            return;
+        }
+
+        NewOnlineBtn.IsVisible = false;
     }
 
 

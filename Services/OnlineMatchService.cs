@@ -1,101 +1,167 @@
 using ChessMAUI.Models;
+using Supabase.Realtime.PostgresChanges;
 
 namespace ChessMAUI.Services;
 
 /// <summary>
-/// Matchmaking 1v1 com margem adaptativa de rating.
-/// Começa em ±100, expande +100 a cada 5s até ±400.
-/// Phase 1: mock local. Phase 2: substituir por Firebase/SignalR.
+/// Matchmaking 1v1 real: chama a função de servidor find_match() (já valida rating/fila),
+/// e assina Realtime em "games" pro caso do adversário ser quem encontra o par primeiro —
+/// nenhuma escolha de adversário acontece no cliente.
 /// </summary>
 public class OnlineMatchService
 {
-    private const int InitialMargin = 100;
-    private const int MarginStep    = 100;
-    private const int MaxMargin     = 400;
-    private const int ExpandEveryMs = 5_000;
-
-    private static readonly string[] MockNames =
-    [
-        "Carlos Silva", "Ana Lima",       "Pedro Santos",  "Julia Rocha",
-        "Rafael Costa", "Fernanda Alves", "Bruno Martins", "Camila Nunes",
-        "Diego Souza",  "Larissa Melo"
-    ];
+    private const int    InitialMargin = 100;
+    private const int    MarginStep    = 100;
+    private const int    MaxMargin     = 400;
+    private const int    ExpandEveryMs = 5_000;
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
 
     public OnlineMatchState State          { get; } = new();
     public int              CurrentMargin  { get; private set; }
 
     public event Action?       MatchReady;
     public event Action?       SearchCancelled;
-    public event Action<int>?  MarginChanged;   // dispara quando a margem expande
+    public event Action<int>?  MarginChanged;   // cosmético — reflete o tempo decorrido local
 
-    private CancellationTokenSource? _cts;
+    private IDispatcherTimer? _pollTimer;
+    private IDispatcherTimer? _marginTimer;
+    private DateTime          _searchStartedAt;
+    private int               _minutes;
+    private bool              _resolved;
 
     public async Task StartSearchingAsync(int minutes, int playerRating)
     {
-        _cts?.Cancel();
-        _cts = new CancellationTokenSource();
+        StopTimers();
+        _resolved           = false;
+        _minutes            = minutes;
+        _searchStartedAt    = DateTime.UtcNow;
+        CurrentMargin       = InitialMargin;
 
         State.Phase         = OnlineMatchPhase.Searching;
         State.AgreedMinutes = minutes;
         State.MatchId       = Guid.NewGuid().ToString()[..8];
-        CurrentMargin       = InitialMargin;
+
+        SubscribeToIncomingGame();
+
+        _marginTimer = Application.Current!.Dispatcher.CreateTimer();
+        _marginTimer.Interval = TimeSpan.FromMilliseconds(ExpandEveryMs);
+        _marginTimer.Tick += (_, _) =>
+        {
+            CurrentMargin = Math.Min(CurrentMargin + MarginStep, MaxMargin);
+            MarginChanged?.Invoke(CurrentMargin);
+        };
+        _marginTimer.Start();
+
+        _pollTimer = Application.Current!.Dispatcher.CreateTimer();
+        _pollTimer.Interval = PollInterval;
+        _pollTimer.Tick += async (_, _) => await PollOnce();
+        _pollTimer.Start();
+
+        await PollOnce();
+    }
+
+    private async Task PollOnce()
+    {
+        if (State.Phase != OnlineMatchPhase.Searching) return;
+        var svc = SupabaseService.Instance;
+        if (!svc.IsReady) return;
 
         try
         {
-            for (int margin = InitialMargin; ; margin += MarginStep)
-            {
-                CurrentMargin = Math.Min(margin, MaxMargin);
-                MarginChanged?.Invoke(CurrentMargin);
-
-                bool isLastWindow = CurrentMargin >= MaxMargin;
-
-                // Mock: 65 % de chance de encontrar nesta janela; última janela sempre encontra
-                bool foundHere = isLastWindow || Random.Shared.Next(100) < 65;
-
-                if (foundHere)
-                {
-                    int delay = Random.Shared.Next(400, ExpandEveryMs);
-                    await Task.Delay(delay, _cts.Token);
-                    ConfirmMatch(playerRating, CurrentMargin);
-                    return;
-                }
-
-                await Task.Delay(ExpandEveryMs, _cts.Token);
-
-                if (isLastWindow) break;
-            }
+            var response = await svc.Client.Rpc("find_match",
+                new Dictionary<string, object> { ["p_time_minutes"] = _minutes });
+            var gameId = response?.Content?.Trim('"');
+            if (!string.IsNullOrEmpty(gameId) && gameId != "null")
+                await ResolveMatch(gameId);
         }
-        catch (OperationCanceledException) { }
+        catch { /* mantém tentando na próxima batida */ }
     }
 
-    public void Cancel()
+    /// <summary>Cobre o caso em que o OUTRO jogador chamou find_match e casou comigo primeiro —
+    /// quem encontra o par é sempre quem cria a linha em "games".</summary>
+    private void SubscribeToIncomingGame()
     {
-        _cts?.Cancel();
+        try
+        {
+            string myId = AppState.Current.Auth.UserId;
+            SupabaseService.Instance.Client
+                .From<SupabaseGame>()
+                .On(PostgresChangesOptions.ListenType.Inserts, async (_, change) =>
+                {
+                    var game = change.Model<SupabaseGame>();
+                    if (game == null) return;
+                    if (game.WhiteId != myId && game.BlackId != myId) return;
+
+                    await MainThread.InvokeOnMainThreadAsync(() => ResolveMatch(game.Id));
+                });
+        }
+        catch { }
+    }
+
+    private async Task ResolveMatch(string gameId)
+    {
+        if (_resolved || State.Phase != OnlineMatchPhase.Searching) return;
+        _resolved = true;
+        StopTimers();
+
+        await FillOpponentInfoAsync(gameId);
+        State.GameId = gameId;
+        State.Phase  = OnlineMatchPhase.Confirmed;
+        MatchReady?.Invoke();
+    }
+
+    private async Task FillOpponentInfoAsync(string gameId)
+    {
+        try
+        {
+            var svc  = SupabaseService.Instance;
+            var game = await svc.Client.From<SupabaseGame>().Where(g => g.Id == gameId).Single();
+            if (game == null) return;
+
+            string myId       = AppState.Current.Auth.UserId;
+            bool   isWhite    = game.WhiteId == myId;
+            string opponentId = isWhite ? game.BlackId : game.WhiteId;
+
+            var profile = await svc.Client.From<SupabaseProfile>().Where(p => p.Id == opponentId).Single();
+
+            State.PlayerIsWhite  = isWhite;
+            State.OpponentName   = string.IsNullOrWhiteSpace(profile?.Name) ? "Adversário" : profile!.Name;
+            State.OpponentRating = profile?.Elo ?? 1200;
+        }
+        catch { State.OpponentName = "Adversário"; }
+    }
+
+    public async void Cancel()
+    {
+        StopTimers();
         State.Phase = OnlineMatchPhase.Cancelled;
+        try
+        {
+            var svc = SupabaseService.Instance;
+            if (svc.IsReady)
+                await svc.Client.Rpc("cancel_search", new Dictionary<string, object>());
+        }
+        catch { }
         SearchCancelled?.Invoke();
         Reset();
     }
 
     public void Reset()
     {
-        _cts?.Cancel();
-        _cts                 = null;
+        StopTimers();
         CurrentMargin        = 0;
         State.Phase          = OnlineMatchPhase.Idle;
+        State.GameId         = "";
         State.OpponentName   = "";
         State.OpponentRating = 0;
         State.MatchId        = "";
     }
 
-    // ── Privados ─────────────────────────────────────────────────────────────
-
-    private void ConfirmMatch(int playerRating, int margin)
+    private void StopTimers()
     {
-        int offset = Random.Shared.Next(-margin, margin + 1);
-        State.OpponentRating = Math.Max(400, playerRating + offset);
-        State.OpponentName   = MockNames[Random.Shared.Next(MockNames.Length)];
-        State.PlayerIsWhite  = Random.Shared.Next(2) == 0;
-        State.Phase          = OnlineMatchPhase.Confirmed;
-        MatchReady?.Invoke();
+        _pollTimer?.Stop();
+        _pollTimer = null;
+        _marginTimer?.Stop();
+        _marginTimer = null;
     }
 }

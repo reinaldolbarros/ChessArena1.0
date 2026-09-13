@@ -4,6 +4,7 @@ public enum OnlineMatchPhase { Idle, Searching, Confirmed, Cancelled }
 
 public class OnlineMatchState
 {
+    public string           GameId          { get; set; } = "";
     public string           MatchId         { get; set; } = "";
     public string           OpponentName    { get; set; } = "";
     public int              OpponentRating  { get; set; }

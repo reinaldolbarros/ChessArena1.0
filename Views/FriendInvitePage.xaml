@@ -49,23 +49,6 @@
                     <!-- ─ Criar Desafio ─ -->
                     <VerticalStackLayout x:Name="CriarSection" Spacing="14">
 
-                        <!-- Nome do desafiante (online) -->
-                        <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
-                                StrokeShape="RoundRectangle 16" Padding="16,14">
-                            <VerticalStackLayout Spacing="6">
-                                <Label Text="SEU NOME" TextColor="#6A8AAA" FontSize="11"
-                                       FontAttributes="Bold" CharacterSpacing="1"/>
-                                <Border BackgroundColor="#040F1A" Stroke="#1E3A5A" StrokeThickness="1"
-                                        StrokeShape="RoundRectangle 10" Padding="14,0">
-                                    <Entry x:Name="ChallengerNameEntry"
-                                           Placeholder="Seu nome" PlaceholderColor="#3A5070"
-                                           TextColor="#F2F5F8" FontSize="16"
-                                           HeightRequest="46" BackgroundColor="Transparent"
-                                           MaxLength="20"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Border>
-
                         <!-- Código gerado (oculto até gerar) -->
                         <Border x:Name="CodeDisplayCard" IsVisible="False"
                                 BackgroundColor="#061F33" Stroke="#2E7DDB" StrokeThickness="1.4"
@@ -107,11 +90,15 @@
                                                        Color="#2E7DDB"
                                                        WidthRequest="16" HeightRequest="16"/>
                                     <Label x:Name="WaitingLabel"
-                                           Text="Passe o celular ao amigo → 'Entrar com Código'"
+                                           Text="Aguardando seu amigo aceitar o desafio…"
                                            TextColor="#9FB3C8" FontSize="12"
                                            VerticalOptions="Center"
                                            LineBreakMode="WordWrap"/>
                                 </HorizontalStackLayout>
+
+                                <Label x:Name="ExpiryLabel" Text=""
+                                       TextColor="#5A7A9A" FontSize="11"
+                                       HorizontalTextAlignment="Center"/>
                             </VerticalStackLayout>
                         </Border>
 

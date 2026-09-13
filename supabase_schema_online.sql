@@ -148,7 +148,11 @@ create or replace function public.compute_elo_delta(
   p_current_elo int, p_opponent_elo int, p_games_played int, p_score numeric
 ) returns int language plpgsql immutable as $$
 declare
-  k          int := case when p_games_played < 30 then 40 else 20 end;
+  k          int := case
+    when p_games_played < 30  then 40
+    when p_current_elo >= 2400 then 10
+    else 20
+  end;
   expected   numeric := 1.0 / (1.0 + power(10.0, (p_opponent_elo - p_current_elo)::numeric / 400.0));
   raw_delta  int := round(k * (p_score - expected));
   new_elo    int := greatest(100, p_current_elo + raw_delta);
@@ -235,7 +239,7 @@ begin
   where q.user_id <> me
     and q.time_minutes = p_time_minutes
     and abs(q.rating - my_elo) <= greatest(100, least(400, 100 + 60 * (extract(epoch from (now() - q.created_at))::int / 5)))
-  order by q.created_at asc
+  order by abs(q.rating - my_elo) asc, q.created_at asc
   for update skip locked
   limit 1;
 

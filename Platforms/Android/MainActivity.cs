@@ -32,6 +32,8 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+        if (Window != null)
+            AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, false);
         Window?.SetBackgroundDrawable(new ColorDrawable(Android.Graphics.Color.ParseColor("#060B14")));
         Window?.SetSoftInputMode(SoftInput.AdjustResize);
         HandleDeepLink(Intent);

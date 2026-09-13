@@ -22,7 +22,9 @@ public partial class FriendInvitePage : ContentPage
     private int                _selectedMinutes;
     private bool               _codeMade;
     private string?            _myCode;
+    private DateTime           _codeExpiresAt;
     private SupabaseChallenge? _foundChallenge; // resultado da busca online
+    private IDispatcherTimer?  _expiryTimer;
 
     // ── Init ──────────────────────────────────────────────────────────────────
     public FriendInvitePage() => InitializeComponent();
@@ -30,10 +32,6 @@ public partial class FriendInvitePage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-
-        var profile = AppState.Current.Profile;
-        if (!AppState.Current.Auth.IsAnonymous && !string.IsNullOrWhiteSpace(profile.Name))
-            ChallengerNameEntry.Text = profile.Name;
 
         SetTime(Preferences.Default.Get(PrefKeyTime, 0));
         SetSubMode(FriendMode.OnlineCreate);
@@ -48,6 +46,12 @@ public partial class FriendInvitePage : ContentPage
             CodeEntry.Text = pendingCode;
             _ = SearchOrAccept();
         }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        StopExpiryTimer();
     }
 
     // ── Troca de sub-modo ──────────────────────────────────────────────────────
@@ -75,6 +79,7 @@ public partial class FriendInvitePage : ContentPage
             CodeDisplayCard.IsVisible = false;
             _codeMade = false;
             _myCode   = null;
+            StopExpiryTimer();
         }
         else
         {
@@ -159,11 +164,10 @@ public partial class FriendInvitePage : ContentPage
             return;
         }
 
-        string challenger = string.IsNullOrWhiteSpace(ChallengerNameEntry.Text)
-            ? (AppState.Current.Profile.Name ?? "Desafiante")
-            : ChallengerNameEntry.Text.Trim();
+        string challenger = AppState.Current.Profile.Name ?? "Desafiante";
 
         _myCode = MakeCode();
+        _codeExpiresAt = DateTime.UtcNow.AddMinutes(CodeExpiryMin);
 
         try
         {
@@ -174,7 +178,7 @@ public partial class FriendInvitePage : ContentPage
                 ChallengerName = challenger,
                 TimeMinutes    = _selectedMinutes,
                 Status         = "pending",
-                ExpiresAt      = DateTime.UtcNow.AddMinutes(CodeExpiryMin),
+                ExpiresAt      = _codeExpiresAt,
             };
             await svc.Client.From<SupabaseChallenge>().Insert(challenge);
         }
@@ -193,6 +197,43 @@ public partial class FriendInvitePage : ContentPage
         UpdateActionBtn();
 
         SubscribeToOwnChallenge(_myCode);
+        StartExpiryTimer();
+
+        await ShareCode();
+    }
+
+    // ── Contagem regressiva de expiração do código ───────────────────────────
+
+    private void StartExpiryTimer()
+    {
+        StopExpiryTimer();
+        _expiryTimer = Application.Current!.Dispatcher.CreateTimer();
+        _expiryTimer.Interval = TimeSpan.FromSeconds(1);
+        _expiryTimer.Tick += (_, _) => UpdateExpiryLabel();
+        _expiryTimer.Start();
+        UpdateExpiryLabel();
+    }
+
+    private void StopExpiryTimer()
+    {
+        _expiryTimer?.Stop();
+        _expiryTimer = null;
+        ExpiryLabel.Text = "";
+    }
+
+    private void UpdateExpiryLabel()
+    {
+        var remaining = _codeExpiresAt - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+        {
+            StopExpiryTimer();
+            ExpiryLabel.Text        = "Código expirado — gere um novo";
+            WaitingLabel.Text       = "Este código não é mais válido.";
+            WaitingSpinner.IsVisible = false;
+            return;
+        }
+
+        ExpiryLabel.Text = $"Expira em {(int)remaining.TotalMinutes:D2}:{remaining.Seconds:D2}";
     }
 
     /// <summary>Assina a própria linha em "challenges" — quando o amigo aceitar (status vira
@@ -224,17 +265,22 @@ public partial class FriendInvitePage : ContentPage
         CopyCodeBtn.Text = "Copiar";
     }
 
-    private async void OnShareCodeClicked(object? sender, EventArgs e)
+    private async void OnShareCodeClicked(object? sender, EventArgs e) => await ShareCode();
+
+    private async Task ShareCode()
     {
         if (_myCode is null) return;
-        // Link único (mesma página pra qualquer convite, o código vai na URL) — quem já tem o
-        // app abre direto na tela de aceitar; quem não tem vê o código e como baixar o app.
-        string link = $"https://claude.ai/code/artifact/c3b8d9d0-bf88-44e4-9d93-220c361e7757?code={_myCode}";
-        await Share.Default.RequestAsync(new ShareTextRequest
+        // Só o código, sem link — evita depender de uma página externa (ex.: hospedada fora do
+        // ChessArena) só pra repassar o convite. Quem recebe abre o app e usa "Entrar com Código".
+        try
         {
-            Title = "Desafio de Xadrez",
-            Text  = $"🎯 Vamos jogar xadrez! Toque no link pra aceitar meu desafio (código {_myCode}):\n{link}",
-        });
+            await Share.Default.RequestAsync(new ShareTextRequest
+            {
+                Title = "Desafio de Xadrez",
+                Text  = $"🎯 Te desafiei no ChessArena! Abra o app, toque em \"Entrar com Código\" e digite: {_myCode}",
+            });
+        }
+        catch { /* usuário cancelou a folha de compartilhamento — sem problema, ele ainda pode tocar em "Compartilhar" de novo */ }
     }
 
     // ── Fluxo: Entrar com código ──────────────────────────────────────────────
@@ -345,41 +391,14 @@ public partial class FriendInvitePage : ContentPage
 
     private async Task EnterOnlineGame(string gameId, string? knownOpponentName)
     {
-        var online = AppState.Current.OnlineGame;
-        var game   = await online.LoadGameAsync(gameId);
-        if (game == null)
+        bool ok = await AppState.Current.OnlineGame.EnterGameAsync(gameId, knownOpponentName);
+        if (!ok)
         {
             await DisplayAlert("Erro", "Não foi possível carregar a partida.", "OK");
             return;
         }
 
-        string myId         = AppState.Current.Auth.UserId;
-        bool   playerIsWhite = game.WhiteId == myId;
-        string opponentId    = playerIsWhite ? game.BlackId : game.WhiteId;
-        string opponentName  = knownOpponentName ?? await LookupProfileNameAsync(opponentId);
-
-        var state = AppState.Current;
-        state.PendingOnlineGameId   = gameId;
-        state.IsOnlineGame          = true;
-        state.PendingOnlineGame     = true;
-        state.OnlineOpponentName    = opponentName;
-        state.OnlineTimeMinutes     = game.TimeMinutes;
-        state.OnlinePlayerIsWhite   = playerIsWhite;
-
         await Shell.Current.GoToAsync("GamePage");
-    }
-
-    private static async Task<string> LookupProfileNameAsync(string userId)
-    {
-        try
-        {
-            var row = await SupabaseService.Instance.Client
-                .From<SupabaseProfile>()
-                .Where(p => p.Id == userId)
-                .Single();
-            return string.IsNullOrWhiteSpace(row?.Name) ? "Adversário" : row!.Name;
-        }
-        catch { return "Adversário"; }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

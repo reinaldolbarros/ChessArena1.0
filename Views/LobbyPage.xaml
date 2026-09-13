@@ -207,16 +207,18 @@
                             <TapGestureRecognizer Tapped="OnQuickPlayTapped"/>
                         </Border.GestureRecognizers>
                         <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
-                                             Spacing="2">
+                                             Spacing="0">
                             <Image Source="chatgpt_robot_neon.png"
                                    WidthRequest="38" HeightRequest="38"
                                    Aspect="AspectFit" HorizontalOptions="Center"/>
-                            <Label Text="Jogar contra"
-                                   FontSize="11" TextColor="#8A9EBE"
-                                   HorizontalTextAlignment="Center"/>
-                            <Label Text="Bots"
-                                   FontSize="14" FontAttributes="Bold" TextColor="#FFFFFF"
-                                   HorizontalTextAlignment="Center"/>
+                            <VerticalStackLayout Spacing="0" HorizontalOptions="Center">
+                                <Label Text="Jogar contra"
+                                       FontSize="11" TextColor="#8A9EBE" LineHeight="1"
+                                       HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                                <Label Text="Bots"
+                                       FontSize="14" FontAttributes="Bold" TextColor="#FFFFFF" LineHeight="1"
+                                       HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
 
@@ -235,16 +237,18 @@
                             <TapGestureRecognizer Tapped="OnFriendGameTapped"/>
                         </Border.GestureRecognizers>
                         <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
-                                             Spacing="2">
+                                             Spacing="0">
                             <Image Source="chatgpt_friends_neon.png"
                                    WidthRequest="38" HeightRequest="38"
                                    Aspect="AspectFit" HorizontalOptions="Center"/>
-                            <Label Text="Jogar com"
-                                   FontSize="11" TextColor="#8A9EBE"
-                                   HorizontalTextAlignment="Center"/>
-                            <Label Text="Amigo"
-                                   FontSize="14" FontAttributes="Bold" TextColor="#FFFFFF"
-                                   HorizontalTextAlignment="Center"/>
+                            <VerticalStackLayout Spacing="0" HorizontalOptions="Center">
+                                <Label Text="Jogar com"
+                                       FontSize="11" TextColor="#8A9EBE" LineHeight="1"
+                                       HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                                <Label Text="Amigo"
+                                       FontSize="14" FontAttributes="Bold" TextColor="#FFFFFF" LineHeight="1"
+                                       HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </Grid>

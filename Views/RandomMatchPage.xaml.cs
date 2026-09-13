@@ -99,12 +99,13 @@ public partial class RandomMatchPage : ContentPage
                 return;
             }
 
-            var app = AppState.Current;
-            app.PendingOnlineGame   = true;
-            app.IsOnlineGame        = true;
-            app.OnlineOpponentName  = s.OpponentName;
-            app.OnlineTimeMinutes   = s.AgreedMinutes;
-            app.OnlinePlayerIsWhite = s.PlayerIsWhite;
+            bool ok = await AppState.Current.OnlineGame.EnterGameAsync(s.GameId, s.OpponentName);
+            if (!ok)
+            {
+                await DisplayAlert("Erro", "Não foi possível carregar a partida.", "OK");
+                ShowSection("selection");
+                return;
+            }
 
             await Shell.Current.GoToAsync("GamePage");
         });

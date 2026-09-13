@@ -80,7 +80,7 @@ public partial class LobbyPage : ContentPage
         else                   AvatarLabel.Text    = p.Avatar;
 
         NameLabel.Text   = p.Name;
-        PointsLabel.Text = $"{p.Points} Elo";
+        PointsLabel.Text = p.Points.ToString();
 
         SetFlag(p.Country);
 
