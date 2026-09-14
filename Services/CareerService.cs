@@ -7,7 +7,16 @@ public class CareerService
 {
     private const string Key = "career_v3";
 
-    private static readonly string[] Letters = ["A","B","C","D","E"];
+    // Pool de nomes fictícios (não usa GMs reais aqui — esses ficam reservados pra Copa do
+    // Mundo/Candidatos) pros adversários de Local/Zonal/Grand Swiss/Grand Prix. Quem se
+    // classifica junto com o jogador reaparece com o MESMO nome na fase seguinte (ver
+    // CreateSwissTournament/ApplyStageResult), pra parecer o mesmo rival subindo com você.
+    private static readonly string[] SwissNamePool =
+    [
+        "Petrova", "Dvorak", "Lindqvist", "Moreau", "Yamada", "Okafor",
+        "Novak", "Kowalski", "Ferreira", "Andersen", "Hassan", "Kuznetsov",
+        "Larsen", "Popescu", "Tanaka", "Alencar",
+    ];
 
     private static readonly string[][] CopaOpponentNames =
     [
@@ -60,7 +69,23 @@ public class CareerService
         _                      => [2,2,3,3,3]
     };
 
-    private static string[] GetPlayerNames(CareerLevel level) => Letters;
+    // Sorteia nomes do pool, sem repetir dentro do mesmo torneio, priorizando quem já veio
+    // "carregado" da fase anterior (mesmo nome = mesmo rival, dá a sensação de continuidade).
+    private static string[] GetPlayerNames(CareerLevel level, int count, IReadOnlyList<string>? carried)
+    {
+        var result = new List<string>();
+        if (carried != null) result.AddRange(carried.Take(count));
+
+        var available = SwissNamePool.Where(n => !result.Contains(n)).OrderBy(_ => Random.Shared.Next()).ToList();
+        int i = 0;
+        while (result.Count < count && i < available.Count) result.Add(available[i++]);
+        return result.ToArray();
+    }
+
+    // Adversários (não-humanos) que terminaram dentro da zona de classificação junto com o
+    // jogador — reaparecem com o mesmo nome na próxima fase (ver CreateSwissTournament).
+    private static List<string> CoQualifiers(CareerTournamentState t) =>
+        t.Standings.Take(t.AdvancementSpots).Where(p => !p.IsHuman).Select(p => p.Name).ToList();
 
     private static int GetAdvancementSpots(CareerLevel level) => level switch
     {
@@ -72,10 +97,10 @@ public class CareerService
 
     // ── Creation ──────────────────────────────────────────────────────────────
 
-    public CareerTournamentState CreateSwissTournament(CareerLevel level)
+    public CareerTournamentState CreateSwissTournament(CareerLevel level, IReadOnlyList<string>? carriedNames = null)
     {
         var diffs   = GetDiffs(level);
-        var names   = GetPlayerNames(level);
+        var names   = GetPlayerNames(level, diffs.Length, carriedNames);
         var players = new List<CareerPlayer>();
         for (int i = 0; i < diffs.Length; i++)
             players.Add(new CareerPlayer { Name = names[i], Difficulty = diffs[i] });
@@ -482,7 +507,7 @@ public class CareerService
                 if (outcome == CareerStageOutcome.Advanced)
                 {
                     p.CurrentLevel     = CareerLevel.Zonal;
-                    p.ActiveTournament = CreateSwissTournament(CareerLevel.Zonal);
+                    p.ActiveTournament = CreateSwissTournament(CareerLevel.Zonal, CoQualifiers(t));
                 }
                 else
                 {
@@ -535,7 +560,7 @@ public class CareerService
                 else
                 {
                     p.CurrentLevel     = CareerLevel.GrandPrix;
-                    p.ActiveTournament = CreateSwissTournament(CareerLevel.GrandPrix);
+                    p.ActiveTournament = CreateSwissTournament(CareerLevel.GrandPrix, CoQualifiers(t));
                 }
                 break;
 

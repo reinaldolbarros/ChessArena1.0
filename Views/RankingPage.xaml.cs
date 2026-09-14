@@ -28,8 +28,19 @@ public partial class RankingPage : ContentPage
     {
         var profile = AppState.Current.Profile;
         var svc     = AppState.Current.Ranking;
-        var entries = await svc.GetGlobalAsync(profile);
 
+        // Mostra o resultado da última busca na hora (sem esperar rede) — só busca de novo
+        // no servidor se o cache já estiver velho, evitando o atraso perceptível de antes.
+        var cached = svc.PeekGlobalCache();
+        if (cached != null) Render(cached);
+        if (svc.IsGlobalCacheFresh) return;
+
+        var entries = await svc.GetGlobalAsync(profile);
+        Render(entries);
+    }
+
+    private void Render(List<RankingEntry> entries)
+    {
         var displayed    = entries.Take(ListLimit).ToList();
         bool playerInList = displayed.Any(e => e.IsHuman);
 

@@ -8,7 +8,6 @@ public partial class GamePage : ContentPage
 {
     private readonly GameViewModel _vm;
 
-    private CancellationTokenSource? _chatCts;
     private double _squareSize;
     private bool   _resultShownForGame;
     private bool   _nextTurnIsBlack;
@@ -39,7 +38,6 @@ public partial class GamePage : ContentPage
         BindingContext = _vm;
 
         _vm.PromotionRequested  += OnPromotionRequested;
-        _vm.ChatMessageReceived += OnChatMessageReceived;
         _vm.TournamentGameEnded += OnTournamentGameEnded;
         _vm.ResignRequested     += OnResignRequested;
         _vm.DrawOfferRequested  += OnDrawOfferRequested;
@@ -502,26 +500,6 @@ public partial class GamePage : ContentPage
     private void OnHandoffDismissed(object? sender, EventArgs e)
     {
         HandoffPanel.IsVisible = false;
-    }
-
-    // -----------------------------------------------------------------------
-    // Chat do bot — exibe balão e some após 3 s
-    // -----------------------------------------------------------------------
-    private void OnChatMessageReceived(string message)
-    {
-        _chatCts?.Cancel();
-        _chatCts = new CancellationTokenSource();
-        var token = _chatCts.Token;
-
-        ChatLabel.Text       = $"🤖  {message}";
-        ChatBubble.IsVisible = true;
-
-        Task.Run(async () =>
-        {
-            await Task.Delay(3000, token);
-            if (!token.IsCancellationRequested)
-                MainThread.BeginInvokeOnMainThread(() => ChatBubble.IsVisible = false);
-        }, token);
     }
 
     // -----------------------------------------------------------------------

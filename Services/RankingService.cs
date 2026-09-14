@@ -17,21 +17,32 @@ public class RankingService
 {
     private const int TopLimit = 50;
 
+    // Cache curto do ranking global — evita ir ao servidor de novo a cada vez que a tela
+    // inicial reaparece (troca de aba etc.), que era a causa da lentidão percebida ali.
+    private List<RankingEntry>? _cachedGlobal;
+    private DateTime            _cachedGlobalAt = DateTime.MinValue;
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(45);
+
+    public List<RankingEntry>? PeekGlobalCache() => _cachedGlobal;
+    public bool IsGlobalCacheFresh => _cachedGlobal != null && DateTime.UtcNow - _cachedGlobalAt < CacheTtl;
+
     // Preenchimento fictício — nomes plausíveis de jogadores reais, com rating distribuído
     // numa curva realista. Nunca aparecem se já existir gente real o suficiente com rating
     // mais alto pra preencher a lista sozinha.
+    // Valores irregulares (não múltiplos redondos) — simulam pontuação real, que só sobe
+    // ou desce em unidades a cada partida, nunca em saltos "redondos" tipo 50 em 50.
     private static readonly (string Avatar, string Name, int Elo)[] FillerSeeds =
     [
-        ("♛","Carlos Silva",    2200), ("♜","Ana Lima",         2050),
-        ("♝","Pedro Santos",    1950), ("♞","Julia Rocha",      1850),
-        ("🎯","Rafael Costa",    1780), ("🔥","Fernanda Alves",   1720),
-        ("💎","Bruno Martins",   1650), ("👑","Camila Nunes",     1600),
-        ("🦁","Diego Souza",     1550), ("🐉","Larissa Melo",     1500),
-        ("⚡","Lucas Pereira",    1450), ("🌟","Beatriz Souza",    1400),
-        ("🎭","Gabriel Rocha",   1350), ("🛡️","Mariana Lopes",    1300),
-        ("♟","Thiago Almeida",  1250), ("♛","Isabela Ramos",    1200),
-        ("♜","Felipe Cardoso",  1150), ("♝","Amanda Teixeira",  1100),
-        ("♞","Vinícius Barros", 1050), ("🎯","Letícia Farias",   1000),
+        ("♛","Carlos Silva",    1865), ("♜","Ana Lima",         1817),
+        ("♝","Pedro Santos",    1774), ("♞","Julia Rocha",      1731),
+        ("🎯","Rafael Costa",    1698), ("🔥","Fernanda Alves",   1655),
+        ("💎","Bruno Martins",   1622), ("👑","Camila Nunes",     1589),
+        ("🦁","Diego Souza",     1546), ("🐉","Larissa Melo",     1513),
+        ("⚡","Lucas Pereira",    1470), ("🌟","Beatriz Souza",    1437),
+        ("🎭","Gabriel Rocha",   1394), ("🛡️","Mariana Lopes",    1361),
+        ("♟","Thiago Almeida",  1318), ("♛","Isabela Ramos",    1285),
+        ("♜","Felipe Cardoso",  1242), ("♝","Amanda Teixeira",  1209),
+        ("♞","Vinícius Barros", 1166), ("🎯","Letícia Farias",   1123),
     ];
 
     private static List<RankingEntry> BuildFiller(bool weekly) => FillerSeeds.Select(f => new RankingEntry
@@ -44,7 +55,14 @@ public class RankingService
         IsHuman    = false,
     }).ToList();
 
-    public Task<List<RankingEntry>> GetGlobalAsync(ProfileService profile) => FetchTopAsync(profile, weekly: false);
+    public async Task<List<RankingEntry>> GetGlobalAsync(ProfileService profile)
+    {
+        var result = await FetchTopAsync(profile, weekly: false);
+        _cachedGlobal   = result;
+        _cachedGlobalAt = DateTime.UtcNow;
+        return result;
+    }
+
     public Task<List<RankingEntry>> GetWeeklyAsync(ProfileService profile) => FetchTopAsync(profile, weekly: true);
 
     private async Task<List<RankingEntry>> FetchTopAsync(ProfileService profile, bool weekly)

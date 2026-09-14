@@ -13,8 +13,10 @@ public partial class SplashPage : ContentPage
     {
         base.OnAppearing();
 
-        // Supabase inicia em background — não bloqueia o splash
-        _ = SupabaseService.Instance.InitializeAsync();
+        // Supabase inicia em background — não bloqueia o splash. Aproveita esse tempo ocioso
+        // (2s) pra já esquentar o cache do ranking, evitando o atraso perceptível de antes
+        // quando a tela inicial pedia isso pela primeira vez.
+        _ = WarmUpRankingAsync();
 
         await Task.Delay(2000);
 
@@ -35,5 +37,15 @@ public partial class SplashPage : ContentPage
 
         if (Application.Current is not null)
             Application.Current.Windows[0].Page = next;
+    }
+
+    private static async Task WarmUpRankingAsync()
+    {
+        try
+        {
+            await SupabaseService.Instance.InitializeAsync();
+            await AppState.Current.Ranking.GetGlobalAsync(AppState.Current.Profile);
+        }
+        catch { /* a tela inicial ainda busca sozinha se isso falhar */ }
     }
 }

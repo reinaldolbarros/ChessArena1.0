@@ -197,10 +197,22 @@ public partial class LobbyPage : ContentPage
 
     private async Task BuildRankingPreviewAsync()
     {
-        RankingPreviewList.Children.Clear();
-
+        var ranking = AppState.Current.Ranking;
         var profile = AppState.Current.Profile;
-        var entries = await AppState.Current.Ranking.GetGlobalAsync(profile);
+
+        // Mostra o resultado da última busca na hora (sem esperar rede) — só busca de novo
+        // no servidor se o cache já estiver velho, evitando a demora perceptível de antes.
+        var cached = ranking.PeekGlobalCache();
+        if (cached != null) RenderRankingPreview(cached);
+        if (ranking.IsGlobalCacheFresh) return;
+
+        var entries = await ranking.GetGlobalAsync(profile);
+        RenderRankingPreview(entries);
+    }
+
+    private void RenderRankingPreview(List<RankingEntry> entries)
+    {
+        RankingPreviewList.Children.Clear();
 
         var top3 = entries.Take(5).ToList();
         foreach (var entry in top3)

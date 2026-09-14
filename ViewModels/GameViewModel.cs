@@ -132,7 +132,6 @@ public class GameViewModel : INotifyPropertyChanged
     // --- Serviços ---
     private AIService                _ai           = new();
     private readonly SoundService    _sound        = new();
-    private readonly BotChatService  _chat         = new();
     private CancellationTokenSource? _aiCts;
     private int                      _aiThinkMaxMs = 4000; // limite de tempo para a IA pensar
     private readonly List<string>    _uciMoveHistory = [];
@@ -266,7 +265,6 @@ public class GameViewModel : INotifyPropertyChanged
 
     public event Action?               BoardChanged;
     public event Action<string>?       PromotionRequested;
-    public event Action<string>?       ChatMessageReceived;
     public event Action<bool>?         TournamentGameEnded;
     public event Func<Task<bool>>?     ResignRequested;          // retorna true se confirmado
     public event Func<Task<bool>>?     DrawOfferRequested;        // retorna true se aceito pela IA
@@ -288,7 +286,6 @@ public class GameViewModel : INotifyPropertyChanged
         PromoteCommand      = new Command<string>(OnPromote);
         ResignCommand       = new Command(async () => await OnResign());
         OfferDrawCommand    = new Command(async () => await OnOfferDraw(), () => CanOfferDraw);
-        _chat.MessageReceived += msg => ChatMessageReceived?.Invoke(msg);
 
         RefreshBoard();
     }
@@ -574,8 +571,6 @@ public class GameViewModel : INotifyPropertyChanged
         StatusMessage = _timerEnabled
             ? (IsFriendMode ? $"{WhitePlayerName} começa — {minutes} min" : $"Brancas jogam — {minutes} min por lado")
             : (IsFriendMode ? $"Vez de {WhitePlayerName}" : "Vez das Brancas");
-
-        if (IsTournamentMode) _chat.SendStart();
     }
 
     // ----------------------------------------------------------------
@@ -836,7 +831,6 @@ public class GameViewModel : INotifyPropertyChanged
                 pBlackToMove ? -pEval : pEval));
         }
 
-        if (IsTournamentMode) _chat.SendGoodMove();
         UpdateStatus(state);
 
         if (!_gameOver)
@@ -1039,12 +1033,6 @@ public class GameViewModel : INotifyPropertyChanged
                 aBlackToMove ? -aEval : aEval));
             UpdateMoveList();
 
-            if (IsTournamentMode)
-            {
-                if (isCapture) _chat.SendCapture();
-                if (state == GameState.Check) _chat.SendCheck();
-                if (state is GameState.Checkmate or GameState.Stalemate) _chat.SendWin();
-            }
             UpdateStatus(state);
             ResetMoveTimer();
         }

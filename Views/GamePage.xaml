@@ -84,22 +84,6 @@
                Padding="8,2" BackgroundColor="#252320"
                HorizontalTextAlignment="Start" VerticalOptions="Center"/>
 
-        <!-- ══════════════════════════════════════════════
-             Linha 3 — Balão de chat do bot (oculto por padrão)
-             ══════════════════════════════════════════════ -->
-        <Border Grid.Row="4"
-                x:Name="ChatBubble"
-                IsVisible="False"
-                BackgroundColor="#2A2A3A"
-                Stroke="#555577" StrokeThickness="1"
-                StrokeShape="RoundRectangle 10"
-                Padding="10,6" Margin="4,0">
-            <Label x:Name="ChatLabel"
-                   Text=""
-                   TextColor="#DDDDFF"
-                   FontSize="15"
-                   HorizontalTextAlignment="Center"/>
-        </Border>
 
         <!-- ══════════════════════════════════════════════
              Linha 4 — Tabuleiro 8×8

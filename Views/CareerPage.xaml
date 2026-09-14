@@ -26,7 +26,8 @@
                 </Grid>
 
                 <!-- ══ Card de contexto: nível + progresso ══ -->
-                <Border BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
+                <Border x:Name="ContextCard"
+                        BackgroundColor="#071F3C" Stroke="#2E7DDB" StrokeThickness="1.4"
                         StrokeShape="RoundRectangle 16" Padding="16,14">
                     <VerticalStackLayout Spacing="6">
                         <Grid ColumnDefinitions="*,Auto">
@@ -45,14 +46,60 @@
                 </Border>
 
                 <!-- ══ Welcome (carreira não iniciada) ══ -->
-                <VerticalStackLayout x:Name="WelcomeSection" IsVisible="False" Spacing="16">
-                    <Label Text="Suba da base até o topo. Passe por 7 níveis do circuito FIDE e torne-se Campeão Mundial."
-                           TextColor="#9FB3C8" FontSize="15" HorizontalTextAlignment="Center"/>
-                    <Button Text="Iniciar Carreira"
+                <VerticalStackLayout x:Name="WelcomeSection" IsVisible="False" Spacing="20"
+                                     Margin="0,8,0,0">
+
+                    <Label Text="🏆" FontSize="52" HorizontalTextAlignment="Center"/>
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Circuito FIDE"
+                               TextColor="#F2F5F8" FontSize="22" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"/>
+                        <Label Text="Vença em cada nível para subir ao próximo, até chegar ao topo do xadrez mundial."
+                               TextColor="#9FB3C8" FontSize="14" HorizontalTextAlignment="Center"
+                               LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+
+                    <!-- Trilha resumida do circuito -->
+                    <Border BackgroundColor="#071F3C" Stroke="#1E3A5A" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14" Padding="14,16">
+                        <HorizontalStackLayout Spacing="0" HorizontalOptions="Center">
+                            <VerticalStackLayout Spacing="4" WidthRequest="58">
+                                <Label Text="♟" FontSize="20" TextColor="#9FB3C8" HorizontalTextAlignment="Center"/>
+                                <Label Text="Local" FontSize="10" TextColor="#6A8AAA" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                            <Label Text="›" FontSize="16" TextColor="#2E7DDB" VerticalOptions="Start" Margin="0,2,0,0"/>
+                            <VerticalStackLayout Spacing="4" WidthRequest="58">
+                                <Label Text="♞" FontSize="20" TextColor="#9FB3C8" HorizontalTextAlignment="Center"/>
+                                <Label Text="Zonal" FontSize="10" TextColor="#6A8AAA" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                            <Label Text="›" FontSize="16" TextColor="#2E7DDB" VerticalOptions="Start" Margin="0,2,0,0"/>
+                            <VerticalStackLayout Spacing="4" WidthRequest="58">
+                                <Label Text="♝" FontSize="20" TextColor="#9FB3C8" HorizontalTextAlignment="Center"/>
+                                <Label Text="Copa" FontSize="10" TextColor="#6A8AAA" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                            <Label Text="›" FontSize="16" TextColor="#2E7DDB" VerticalOptions="Start" Margin="0,2,0,0"/>
+                            <VerticalStackLayout Spacing="4" WidthRequest="58">
+                                <Label Text="♜" FontSize="20" TextColor="#9FB3C8" HorizontalTextAlignment="Center"/>
+                                <Label Text="Candidatos" FontSize="10" TextColor="#6A8AAA" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                            <Label Text="›" FontSize="16" TextColor="#2E7DDB" VerticalOptions="Start" Margin="0,2,0,0"/>
+                            <VerticalStackLayout Spacing="4" WidthRequest="58">
+                                <Label Text="♛" FontSize="20" TextColor="#FFD700" HorizontalTextAlignment="Center"/>
+                                <Label Text="Mundial" FontSize="10" TextColor="#FFD700" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <Label Text="Toque em ⬡ acima para ver o mapa completo do circuito"
+                           TextColor="#5A7A9A" FontSize="12" HorizontalTextAlignment="Center"/>
+
+                    <Button Text="▶  Iniciar Carreira"
                             Clicked="OnStartCareerClicked"
                             BackgroundColor="#1F6B36" TextColor="White"
                             FontAttributes="Bold" FontSize="17"
-                            CornerRadius="14" HeightRequest="52"/>
+                            CornerRadius="14" HeightRequest="54"
+                            Margin="0,4,0,0"/>
                 </VerticalStackLayout>
 
                 <!-- ══ Classificação Swiss ══ -->

@@ -64,9 +64,11 @@ public partial class CareerPage : ContentPage
             return;
         }
 
+        ContextCard.IsVisible    = true;
         TournamentNameLabel.Text = t.LevelName;
         LevelLabel.Text          = $"Ciclo {prog.EffectiveCycleYear}  ·  Nível {(int)t.Level + 1}/7";
         LevelSubLabel.Text       = t.LevelSubtitle;
+        ApplyLevelAccent(t.Level);
 
         if (!t.IsCompleted)
             ShowInProgress(t);
@@ -79,10 +81,9 @@ public partial class CareerPage : ContentPage
     private void ShowWelcome()
     {
         var prog = Svc.Progress;
-        TournamentNameLabel.Text = "Modo Carreira";
-        RoundInfoLabel.Text      = "Do Torneio Local ao Campeonato Mundial";
-        LevelLabel.Text          = "7 níveis · Circuito FIDE";
-        LevelSubLabel.Text       = "Suba a pirâmide e torne-se Campeão Mundial";
+        TournamentNameLabel.Text  = "Modo Carreira";
+        ContextCard.IsVisible     = false;
+        RoundProgressBar.Progress = 0;
 
         WelcomeSection.IsVisible     = true;
         StandingsSection.IsVisible   = false;
@@ -94,6 +95,29 @@ public partial class CareerPage : ContentPage
         ResultSection.IsVisible      = false;
         NextBtn.IsVisible            = false;
         RestartTournamentLabel.IsVisible = false;
+    }
+
+    // Cor de destaque evolui do azul (Local) ao dourado (Mundial) — mesma progressão da
+    // "Pirâmide da Carreira" (CareerFlowPage) — pra dar a sensação visual de estar subindo
+    // de fase, sem precisar de um layout totalmente diferente por nível.
+    private static readonly Dictionary<CareerLevel, string> LevelAccent = new()
+    {
+        [CareerLevel.Local]      = "#3E6FA8",
+        [CareerLevel.Zonal]      = "#4F7FBB",
+        [CareerLevel.CopaMundo]  = "#6C7FA0",
+        [CareerLevel.GrandSwiss] = "#8A83A8",
+        [CareerLevel.GrandPrix]  = "#8A83A8",
+        [CareerLevel.Candidatos] = "#AB8A38",
+        [CareerLevel.Mundial]    = "#D4A017",
+    };
+
+    private void ApplyLevelAccent(CareerLevel level)
+    {
+        var hex   = LevelAccent.TryGetValue(level, out var c) ? c : "#2E7DDB";
+        var color = Color.FromArgb(hex);
+        ContextCard.Stroke     = new SolidColorBrush(color);
+        OpponentSection.Stroke = new SolidColorBrush(color);
+        LevelLabel.TextColor   = color;
     }
 
     // ── Tempo por jogador ─────────────────────────────────────────────────────
@@ -142,7 +166,8 @@ public partial class CareerPage : ContentPage
 
         var prog = Svc.Progress;
         if (prog.ActiveTournament == null) return;
-        Svc.RestartActiveTournament(prog);
+        prog.ActiveTournament = null;
+        Svc.Save(prog);
         RefreshUI();
     }
 
@@ -354,6 +379,7 @@ public partial class CareerPage : ContentPage
         LevelSubLabel.Text         = titles > 1
             ? $"Você é um lendário {CareerService.ChampionTitleName(titles)}"
             : "Seu nome entra para a história do xadrez.";
+        ApplyLevelAccent(CareerLevel.Mundial);
         WelcomeSection.IsVisible     = false;
         StandingsSection.IsVisible   = false;
         CopaSection.IsVisible        = false;
@@ -703,7 +729,12 @@ public partial class CareerPage : ContentPage
 
     private void OnStartCareerClicked(object? sender, EventArgs e)
     {
-        Svc.StartCareer();
+        var prog = Svc.Progress;
+        bool hasProgress = prog.CurrentLevel != CareerLevel.Local || prog.CycleYear > 0 || prog.TitlesWon > 0;
+        if (hasProgress)
+            Svc.RestartActiveTournament(prog); // retoma o nível atual — não reseta ciclo/títulos
+        else
+            Svc.StartCareer();                 // primeira vez de verdade: começa do zero
         RefreshUI();
     }
 

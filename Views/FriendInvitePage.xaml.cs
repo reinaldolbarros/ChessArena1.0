@@ -20,11 +20,16 @@ public partial class FriendInvitePage : ContentPage
 
     private FriendMode         _mode = FriendMode.OnlineCreate;
     private int                _selectedMinutes;
-    private bool               _codeMade;
-    private string?            _myCode;
-    private DateTime           _codeExpiresAt;
-    private SupabaseChallenge? _foundChallenge; // resultado da busca online
-    private IDispatcherTimer?  _expiryTimer;
+    private SupabaseChallenge? _foundChallenge; // resultado da busca online (aba "Entrar")
+
+    // Desafios que EU criei e ainda estão pendentes — ficam listados (com contagem
+    // regressiva) até serem aceitos ou expirarem, mesmo saindo desta tela e voltando depois.
+    // Chave = código (já único e conhecido antes mesmo de inserir no servidor).
+    private readonly Dictionary<string, SupabaseChallenge> _activeChallenges = new();
+    private readonly Dictionary<string, Label>             _countdownLabels = new();
+    private readonly Dictionary<string, Border>             _challengeRows  = new();
+    private IDispatcherTimer? _countdownTimer;
+    private bool              _subscribedToOwnChallenges;
 
     // ── Init ──────────────────────────────────────────────────────────────────
     public FriendInvitePage() => InitializeComponent();
@@ -35,6 +40,7 @@ public partial class FriendInvitePage : ContentPage
 
         SetTime(Preferences.Default.Get(PrefKeyTime, 0));
         SetSubMode(FriendMode.OnlineCreate);
+        _ = LoadActiveChallengesAsync();
 
         // Se o app foi aberto por um link de convite (chessarena://invite?code=...) antes de
         // chegar aqui, o código já está esperando — preenche e tenta aceitar sozinho.
@@ -51,7 +57,8 @@ public partial class FriendInvitePage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        StopExpiryTimer();
+        _countdownTimer?.Stop();
+        _countdownTimer = null;
     }
 
     // ── Troca de sub-modo ──────────────────────────────────────────────────────
@@ -70,18 +77,13 @@ public partial class FriendInvitePage : ContentPage
         ApplyTabStyle(SubTabCriarCard,  SubTabCriarLabel,  isCriar);
         ApplyTabStyle(SubTabEntrarCard, SubTabEntrarLabel, !isCriar);
 
+        // Trocar de aba NÃO mexe nos desafios ativos — eles continuam contando mesmo que o
+        // usuário esteja olhando "Entrar com Código" ou saia da tela e volte depois.
         CriarSection.IsVisible  = isCriar;
         EntrarSection.IsVisible = !isCriar;
         TimeCard.IsVisible      = isCriar;
 
-        if (isCriar)
-        {
-            CodeDisplayCard.IsVisible = false;
-            _codeMade = false;
-            _myCode   = null;
-            StopExpiryTimer();
-        }
-        else
+        if (!isCriar)
         {
             _foundChallenge                  = null;
             ChallengeFoundCard.IsVisible    = false;
@@ -105,11 +107,8 @@ public partial class FriendInvitePage : ContentPage
     {
         (ActionBtn.Text, ActionBtn.BackgroundColor, ActionBtn.IsEnabled) = _mode switch
         {
-            FriendMode.OnlineCreate when !_codeMade =>
-                ("Gerar Código",          Color.FromArgb("#2A67B1"), true),
-
             FriendMode.OnlineCreate =>
-                ("Aguardando amigo...",   Color.FromArgb("#1A3050"), false),
+                ("Desafiar",              Color.FromArgb("#2A67B1"), true),
 
             FriendMode.OnlineJoin when ChallengeFoundCard.IsVisible =>
                 ("Aceitar e Jogar",       Color.FromArgb("#1F6B36"), true),
@@ -155,8 +154,6 @@ public partial class FriendInvitePage : ContentPage
 
     private async Task GenerateChallengeCode()
     {
-        if (_codeMade) return;
-
         var svc = SupabaseService.Instance;
         if (!svc.IsReady)
         {
@@ -165,122 +162,205 @@ public partial class FriendInvitePage : ContentPage
         }
 
         string challenger = AppState.Current.Profile.Name ?? "Desafiante";
-
-        _myCode = MakeCode();
-        _codeExpiresAt = DateTime.UtcNow.AddMinutes(CodeExpiryMin);
+        var challenge = new SupabaseChallenge
+        {
+            Code           = MakeCode(),
+            ChallengerId   = AppState.Current.Auth.UserId,
+            ChallengerName = challenger,
+            TimeMinutes    = _selectedMinutes,
+            Status         = "pending",
+            ExpiresAt      = DateTime.UtcNow.AddMinutes(CodeExpiryMin),
+        };
 
         try
         {
-            var challenge = new SupabaseChallenge
-            {
-                Code           = _myCode,
-                ChallengerId   = AppState.Current.Auth.UserId,
-                ChallengerName = challenger,
-                TimeMinutes    = _selectedMinutes,
-                Status         = "pending",
-                ExpiresAt      = _codeExpiresAt,
-            };
             await svc.Client.From<SupabaseChallenge>().Insert(challenge);
         }
         catch
         {
             await DisplayAlert("Erro", "Não foi possível criar o desafio. Tente novamente.", "OK");
-            _myCode = null;
             return;
         }
 
-        GeneratedCodeLabel.Text   = _myCode;
-        CodeDisplayCard.IsVisible = true;
-        WaitingSpinner.IsRunning  = true;
-        WaitingSpinner.IsVisible  = true;
-        _codeMade = true;
-        UpdateActionBtn();
+        AddChallengeRow(challenge);
+        StartCountdownTimerIfNeeded();
+        SubscribeToOwnChallengesOnce();
 
-        SubscribeToOwnChallenge(_myCode);
-        StartExpiryTimer();
-
-        await ShareCode();
+        await ShareCode(challenge.Code);
     }
 
-    // ── Contagem regressiva de expiração do código ───────────────────────────
+    // ── Lista de desafios ativos ──────────────────────────────────────────────
 
-    private void StartExpiryTimer()
+    /// <summary>Busca (de novo) os desafios que eu criei e ainda estão pendentes — chamado ao
+    /// abrir a tela, pra a lista continuar aparecendo mesmo depois de sair e voltar.</summary>
+    private async Task LoadActiveChallengesAsync()
     {
-        StopExpiryTimer();
-        _expiryTimer = Application.Current!.Dispatcher.CreateTimer();
-        _expiryTimer.Interval = TimeSpan.FromSeconds(1);
-        _expiryTimer.Tick += (_, _) => UpdateExpiryLabel();
-        _expiryTimer.Start();
-        UpdateExpiryLabel();
-    }
+        var svc = SupabaseService.Instance;
+        if (!svc.IsReady) return;
 
-    private void StopExpiryTimer()
-    {
-        _expiryTimer?.Stop();
-        _expiryTimer = null;
-        ExpiryLabel.Text = "";
-    }
-
-    private void UpdateExpiryLabel()
-    {
-        var remaining = _codeExpiresAt - DateTime.UtcNow;
-        if (remaining <= TimeSpan.Zero)
-        {
-            StopExpiryTimer();
-            ExpiryLabel.Text        = "Código expirado — gere um novo";
-            WaitingLabel.Text       = "Este código não é mais válido.";
-            WaitingSpinner.IsVisible = false;
-            return;
-        }
-
-        ExpiryLabel.Text = $"Expira em {(int)remaining.TotalMinutes:D2}:{remaining.Seconds:D2}";
-    }
-
-    /// <summary>Assina a própria linha em "challenges" — quando o amigo aceitar (status vira
-    /// "accepted" e game_id é preenchido por accept_challenge()), entra na partida real.</summary>
-    private void SubscribeToOwnChallenge(string code)
-    {
         try
         {
+            string myId = AppState.Current.Auth.UserId;
+            var result = await svc.Client
+                .From<SupabaseChallenge>()
+                .Filter("challenger_id", Operator.Equals, myId)
+                .Filter("status",        Operator.Equals, "pending")
+                .Get();
+
+            var active = result.Models.Where(c => c.ExpiresAt > DateTime.UtcNow).ToList();
+            if (active.Count == 0) return;
+
+            foreach (var ch in active)
+                if (!_activeChallenges.ContainsKey(ch.Code))
+                    AddChallengeRow(ch);
+
+            StartCountdownTimerIfNeeded();
+            SubscribeToOwnChallengesOnce();
+        }
+        catch { /* sem internet — a lista fica vazia até a próxima tentativa */ }
+    }
+
+    private void AddChallengeRow(SupabaseChallenge ch)
+    {
+        _activeChallenges[ch.Code] = ch;
+
+        var countdownLbl = new Label
+        {
+            TextColor = Color.FromArgb("#6A8AAA"), FontSize = 12
+        };
+        _countdownLabels[ch.Code] = countdownLbl;
+
+        var codeLbl = new Label
+        {
+            Text = ch.Code, TextColor = Color.FromArgb("#4AA3FF"),
+            FontSize = 22, FontAttributes = FontAttributes.Bold, CharacterSpacing = 3
+        };
+        codeLbl.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Clipboard.Default.SetTextAsync(ch.Code))
+        });
+
+        var codeStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        codeStack.Add(codeLbl);
+        codeStack.Add(countdownLbl);
+
+        var shareLbl = new Label
+        {
+            Text = "↗  Compartilhar", TextColor = Color.FromArgb("#4AA3FF"), FontSize = 13,
+            FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center
+        };
+        shareLbl.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await ShareCode(ch.Code))
+        });
+
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
+        grid.Add(codeStack);
+        Grid.SetColumn(shareLbl, 1);
+        grid.Add(shareLbl);
+
+        var border = new Border
+        {
+            BackgroundColor = Color.FromArgb("#061F33"),
+            Stroke          = new SolidColorBrush(Color.FromArgb("#2E7DDB")),
+            StrokeThickness = 1.2,
+            StrokeShape     = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
+            Padding         = new Thickness(16, 12),
+            Content         = grid
+        };
+        _challengeRows[ch.Code] = border;
+
+        ActiveChallengesList.Children.Insert(0, border); // mais recente no topo
+        ActiveChallengesSection.IsVisible = true;
+        UpdateCountdownLabel(ch.Code);
+    }
+
+    private void RemoveChallengeRow(string code)
+    {
+        if (_challengeRows.TryGetValue(code, out var border))
+            ActiveChallengesList.Children.Remove(border);
+
+        _activeChallenges.Remove(code);
+        _countdownLabels.Remove(code);
+        _challengeRows.Remove(code);
+
+        ActiveChallengesSection.IsVisible = _activeChallenges.Count > 0;
+    }
+
+    // ── Contagem regressiva (uma só timer pra todos os desafios ativos) ──────
+
+    private void StartCountdownTimerIfNeeded()
+    {
+        if (_countdownTimer != null) return;
+        _countdownTimer = Application.Current!.Dispatcher.CreateTimer();
+        _countdownTimer.Interval = TimeSpan.FromSeconds(1);
+        _countdownTimer.Tick += (_, _) =>
+        {
+            foreach (var code in _activeChallenges.Keys.ToList())
+                UpdateCountdownLabel(code);
+        };
+        _countdownTimer.Start();
+    }
+
+    private void UpdateCountdownLabel(string code)
+    {
+        if (!_activeChallenges.TryGetValue(code, out var ch)) return;
+        if (!_countdownLabels.TryGetValue(code, out var lbl)) return;
+
+        var remaining = ch.ExpiresAt - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+        {
+            RemoveChallengeRow(code);
+            return;
+        }
+
+        lbl.Text = $"Expira em {(int)remaining.TotalMinutes:D2}:{remaining.Seconds:D2}";
+    }
+
+    /// <summary>Assina (uma única vez) mudanças em QUALQUER desafio meu — quando um amigo
+    /// aceitar (status vira "accepted" e game_id é preenchido por accept_challenge()), remove
+    /// da lista e entra na partida real.</summary>
+    private void SubscribeToOwnChallengesOnce()
+    {
+        if (_subscribedToOwnChallenges) return;
+        _subscribedToOwnChallenges = true;
+
+        try
+        {
+            string myId = AppState.Current.Auth.UserId;
             SupabaseService.Instance.Client
                 .From<SupabaseChallenge>()
                 .On(PostgresChangesOptions.ListenType.Updates, async (_, change) =>
                 {
                     var row = change.Model<SupabaseChallenge>();
-                    if (row == null || row.Code != code) return;
+                    if (row == null || row.ChallengerId != myId) return;
                     if (row.Status != "accepted" || string.IsNullOrEmpty(row.GameId)) return;
 
-                    await MainThread.InvokeOnMainThreadAsync(() => EnterOnlineGame(row.GameId!, null));
+                    await MainThread.InvokeOnMainThreadAsync(() => HandleChallengeAcceptedAsync(row));
                 });
         }
         catch { }
     }
 
-    private async void OnCopyCodeClicked(object? sender, EventArgs e)
+    private Task HandleChallengeAcceptedAsync(SupabaseChallenge row)
     {
-        if (_myCode is null) return;
-        await Clipboard.Default.SetTextAsync(_myCode);
-        CopyCodeBtn.Text = "✓ Copiado!";
-        await Task.Delay(1400);
-        CopyCodeBtn.Text = "Copiar";
+        RemoveChallengeRow(row.Code);
+        return EnterOnlineGame(row.GameId!, null);
     }
 
-    private async void OnShareCodeClicked(object? sender, EventArgs e) => await ShareCode();
-
-    private async Task ShareCode()
+    private async Task ShareCode(string code)
     {
-        if (_myCode is null) return;
         // Só o código, sem link — evita depender de uma página externa (ex.: hospedada fora do
         // ChessArena) só pra repassar o convite. Quem recebe abre o app e usa "Entrar com Código".
         try
         {
             await Share.Default.RequestAsync(new ShareTextRequest
             {
-                Title = "Desafio de Xadrez",
-                Text  = $"🎯 Te desafiei no ChessArena! Abra o app, toque em \"Entrar com Código\" e digite: {_myCode}",
+                Title = "Compartilhando desafio",
+                Text  = $"♞ Te desafiei no ChessArena! Abra o app, toque em \"Entrar com Código\" e digite: {code}",
             });
         }
-        catch { /* usuário cancelou a folha de compartilhamento — sem problema, ele ainda pode tocar em "Compartilhar" de novo */ }
+        catch { /* usuário cancelou a folha de compartilhamento — sem problema, pode tocar em "Compartilhar" de novo na lista */ }
     }
 
     // ── Fluxo: Entrar com código ──────────────────────────────────────────────
