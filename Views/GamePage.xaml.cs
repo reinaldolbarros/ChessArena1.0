@@ -44,6 +44,7 @@ public partial class GamePage : ContentPage
         _vm.PropertyChanged     += OnVmPropertyChanged;
         _vm.RequestHandoff      += ShowHandoffOverlay;
         _vm.DrawOfferedByOpponent += OnDrawOfferedByOpponent;
+        _vm.OnlineSyncFailed      += OnOnlineSyncFailed;
 
         _selectedDiff        = Preferences.Default.Get("AiDifficulty", 0);
         _selectedTimeMinutes = Preferences.Default.Get("GameTimeMinutes", 0);
@@ -180,10 +181,10 @@ public partial class GamePage : ContentPage
         }
         else if (state.IsOnlineGame)
         {
-            // O Elo de partidas online é decidido pelo servidor (ver supabase_schema_online.sql
-            // / finalize_game), nunca calculado aqui no cliente — o "Jogar Online" por
-            // matchmaking aleatório ainda está mockado (Stockfish disfarçado de adversário),
-            // então, propositalmente, NÃO mexe em rating nenhum enquanto isso.
+            // O Elo de partida online (tanto "Jogar Online" quanto "Jogar com Amigo" — ambos
+            // passam pelo mesmo finalize_game no servidor) é decidido e gravado no servidor,
+            // nunca calculado aqui no cliente. O painel de resultado busca o valor de volta
+            // logo abaixo (ver RefreshOnlineRatingDisplayAsync).
             if (humanWon)     starsEarned += state.Daily.RecordWin();
         }
 
@@ -226,10 +227,10 @@ public partial class GamePage : ContentPage
             ResultTitle.Text  = humanWon ? "Vitória!" : isDraw ? "Empate" : "Derrota";
             ResultDetail.Text = _vm.StatusMessage;
 
-            // Rating de partida online é lido de volta do servidor (perfil recarregado após
-            // o jogo), não computado aqui — enquanto o "Jogar Online" por matchmaking ainda
-            // for mockado, não existe rating de verdade pra mostrar nesse painel.
-            ResultRatingRow.IsVisible = false;
+            if (state.IsOnlineGame)
+                await RefreshOnlineRatingDisplayAsync();
+            else
+                ResultRatingRow.IsVisible = false;
             ResultSetupBtn.IsVisible = false;
 
             if (state.IsCareerGame)
@@ -273,7 +274,12 @@ public partial class GamePage : ContentPage
 
         if (_vm.IsFriendMode)
         {
-            MainThread.BeginInvokeOnMainThread(() =>
+            // IsFriendMode fica true tanto pra "Jogar com Amigo"/"Jogar Online" reais (dois
+            // aparelhos, via AppState.IsOnlineGame) quanto pro modo antigo de revezar no mesmo
+            // aparelho — só o primeiro caso tem rating de servidor pra buscar de volta.
+            bool isOnline = AppState.Current.IsOnlineGame;
+
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
                 HandoffPanel.IsVisible = false;
                 bool isDraw   = _vm.StatusMessage.Contains("Empate");
@@ -284,11 +290,26 @@ public partial class GamePage : ContentPage
                 ApplyResultColors(!isDraw, isDraw);
                 ResultTitle.Text  = isDraw ? "Empate" : whiteWon ? $"{_vm.WhitePlayerName} vence!" : $"{_vm.BlackPlayerName} vence!";
                 ResultDetail.Text = _vm.StatusMessage;
-                ResultRatingRow.IsVisible = false;
-                ResultSetupBtn.IsVisible  = false;
-                ResultActionBtn.Text   = "← Voltar à Arena";
-                ResultSecondaryLabel.IsVisible = false;
-                ResultPanel.IsVisible  = true;
+                ResultSetupBtn.IsVisible = false;
+                if (isOnline)
+                {
+                    await RefreshOnlineRatingDisplayAsync();
+                    var state = AppState.Current;
+                    ResultActionBtn.IsVisible       = true;
+                    ResultActionBtn.Text            = "🔄 Revanche";
+                    ResultActionBtn.BackgroundColor = Color.FromArgb("#1A4A7A");
+                    NewOnlineBtn.IsVisible          = true;
+                    NewOnlineBtn.Text               = $"🔍 Nova Partida · {state.OnlineTimeMinutes}min";
+                    ResultSecondaryLabel.IsVisible  = true;
+                    ResultSecondaryLabel.Text       = "← Voltar à Arena";
+                }
+                else
+                {
+                    ResultRatingRow.IsVisible      = false;
+                    ResultActionBtn.Text           = "← Voltar à Arena";
+                    ResultSecondaryLabel.IsVisible = false;
+                }
+                ResultPanel.IsVisible = true;
             });
             return;
         }
@@ -533,6 +554,39 @@ public partial class GamePage : ContentPage
         bool accept = await DisplayAlert("Proposta de Empate",
             $"{opponentName} ofereceu empate. Aceitar?", "Aceitar", "Recusar");
         _vm.RespondToDrawOffer(accept);
+    }
+
+    /// <summary>Busca de volta o Elo/vitórias/derrotas já gravados pelo servidor ao final de
+    /// uma partida online real (finalize_game já rodou a essa altura) e atualiza tanto o
+    /// cache local (Lobby/Ranking passam a mostrar o valor certo sem esperar reabrir o app)
+    /// quanto o painel de resultado — sem isso, a tela de resultado nunca mostrava rating
+    /// nenhum, e a Lobby ficava com a pontuação de antes da partida indefinidamente.</summary>
+    private async Task RefreshOnlineRatingDisplayAsync()
+    {
+        var profile   = AppState.Current.Profile;
+        int oldPoints = profile.Points;
+
+        await profile.LoadFromSupabaseAsync();
+        int newPoints = profile.Points;
+        int delta     = newPoints - oldPoints;
+
+        ResultOldRating.Text       = oldPoints.ToString();
+        ResultNewRating.Text       = newPoints.ToString();
+        ResultRatingDelta.Text     = (delta >= 0 ? "+" : "") + delta;
+        ResultRatingDelta.TextColor = Color.FromArgb(delta >= 0 ? "#3FB950" : "#F85149");
+        ResultRatingRow.IsVisible  = true;
+    }
+
+    private bool _syncFailedAlertShowing;
+    private async void OnOnlineSyncFailed()
+    {
+        // Evita empilhar vários alertas se mais de uma ação falhar em sequência.
+        if (_syncFailedAlertShowing) return;
+        _syncFailedAlertShowing = true;
+        await DisplayAlert("Falha de conexão",
+            "Não foi possível confirmar sua última jogada com o servidor. Verifique sua internet — " +
+            "se o problema continuar, seu adversário pode não receber esse lance.", "OK");
+        _syncFailedAlertShowing = false;
     }
 
     /// <summary>Carrega a partida real apontada por AppState.PendingOnlineGameId (Realtime +
@@ -808,31 +862,13 @@ public partial class GamePage : ContentPage
         {
             if (ResultActionBtn.Text.Contains("Revanche"))
             {
-                ResultActionBtn.IsEnabled = false;
-                NewOnlineBtn.IsEnabled    = false;
-                ResultActionBtn.Text      = "Aguardando...";
-                ResultDetail.Text         = "Oponente aceitou! Preparando nova partida...";
-                await Task.Delay(1500);
-
-                // Inverte as cores para a revanche
-                state.OnlinePlayerIsWhite = !state.OnlinePlayerIsWhite;
-
-                string myName  = state.Profile.Name;
-                string oppName = state.OnlineOpponentName;
-                WhitePlayerLabel.Text = state.OnlinePlayerIsWhite
-                    ? $"♙ {myName} (Brancas)"
-                    : $"♙ {oppName} (Brancas)";
-                BlackPlayerLabel.Text = state.OnlinePlayerIsWhite
-                    ? $"♟ {oppName} (Pretas)"
-                    : $"♟ {myName} (Pretas)";
-
-                ResultActionBtn.IsEnabled = true;
-                NewOnlineBtn.IsEnabled    = true;
-                NewOnlineBtn.IsVisible    = false;
-                ResultPanel.IsVisible     = false;
-                _resultShownForGame       = false;
-                Title = $"Revanche vs {oppName}";
-                _vm.StartTournamentGame(oppName, state.OnlineTimeMinutes, 3);
+                // Não existe (ainda) uma RPC de "desafiar de novo o mesmo adversário" no
+                // servidor — só matchmaking real (find_match) ou desafio por código. Fingir
+                // uma revanche instantânea contra o mesmo nome, na prática, iniciava uma
+                // partida contra a IA disfarçada (mesmo bug já corrigido em "Nova Partida"/
+                // OnNewOnlineClicked). Até existir uma RPC de rematch de verdade, "Revanche"
+                // busca um adversário real igual ao botão "Nova Partida".
+                OnNewOnlineClicked(sender, e);
             }
             else
             {

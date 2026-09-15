@@ -26,6 +26,12 @@ public partial class ProfilePage : ContentPage
 
         NameEntry.Text = p.Name;
 
+        // Visitante não escolhe o próprio nome — evita duas contas anônimas usando o mesmo
+        // nome de exibição no ranking (o nome "VisitanteXXXX" já é único o bastante).
+        bool isGuest = AppState.Current.Auth.IsAnonymous;
+        NameEntry.IsEnabled = !isGuest;
+        NameEntry.Opacity   = isGuest ? 0.6 : 1.0;
+
         int ci = GeoData.Countries.IndexOf(p.Country);
         if (ci >= 0) CountryPicker.SelectedIndex = ci;
 
@@ -153,9 +159,9 @@ public partial class ProfilePage : ContentPage
             p.Avatar = string.IsNullOrEmpty(_pendingEmoji) ? "♟" : _pendingEmoji;
 
         // Sem isso, a edição ficava só no aparelho — Ranking e qualquer outro dispositivo
-        // continuavam mostrando os dados antigos, porque só liam do Supabase.
-        if (!AppState.Current.Auth.IsAnonymous)
-            await p.SyncToSupabaseAsync();
+        // continuavam mostrando os dados antigos, porque só liam do Supabase. Visitante
+        // também sincroniza: ele já tem conta anônima real e aparece no ranking/partidas.
+        await p.SyncToSupabaseAsync();
 
         await DisplayAlert("Salvo", "Perfil atualizado com sucesso.", "OK");
     }

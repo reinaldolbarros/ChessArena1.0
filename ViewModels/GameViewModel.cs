@@ -335,7 +335,13 @@ public class GameViewModel : INotifyPropertyChanged
         }
 
         _online.GameUpdated += OnOnlineGameUpdated;
+        _online.SyncFailed  += OnOnlineSyncFailed;
     }
+
+    /// <summary>Repassa pra GamePage mostrar um aviso — o lance/desistência/empate já mudou o
+    /// estado local, mas o servidor não recebeu mesmo depois das tentativas automáticas.</summary>
+    public event Action? OnlineSyncFailed;
+    private void OnOnlineSyncFailed() => MainThread.BeginInvokeOnMainThread(() => OnlineSyncFailed?.Invoke());
 
     private void OnOnlineGameUpdated(SupabaseGame game)
     {
@@ -486,7 +492,11 @@ public class GameViewModel : INotifyPropertyChanged
     // ----------------------------------------------------------------
     public void StartNewGame(int minutes, int aiDepth = 3, bool isTournament = false, bool friendMode = false, int? skillLevel = null, BotPersonality personality = BotPersonality.Balanced, bool onlineMode = false)
     {
-        if (_online != null) _online.GameUpdated -= OnOnlineGameUpdated;
+        if (_online != null)
+        {
+            _online.GameUpdated -= OnOnlineGameUpdated;
+            _online.SyncFailed  -= OnOnlineSyncFailed;
+        }
         if (!onlineMode) { _online = null; _onlineLocalColor = null; _onlineOpponentId = ""; }
         _aiPersonality = personality;
         _aiCts?.Cancel();

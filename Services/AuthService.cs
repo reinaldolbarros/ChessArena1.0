@@ -10,6 +10,15 @@ public class AuthService
     private const string KeySession = "supabase_session"; // chave do MauiSessionHandler
     private const string KeyResetVerifier = "auth_reset_pkce_verifier";
 
+    // Backup separado da sessão do visitante (SecureStorage, mesmo nível de proteção da sessão
+    // principal — ver MauiSessionHandler). Existe porque logar com Google/e-mail SOBRESCREVE a
+    // sessão ativa (a mesma guardada em "supabase_session") — sem um backup à parte, a conta
+    // anônima do visitante ficaria irrecuperável (o Supabase não deixa "logar de volta" numa
+    // conta anônima sem o refresh token dela), e voltar a ser visitante depois de usar uma
+    // conta real sempre criaria um visitante novo, descartável.
+    private const string KeyGuestAccess  = "guest_session_access";
+    private const string KeyGuestRefresh = "guest_session_refresh";
+
     // Esquema de URL próprio do app (registrado no Android/iOS) — usado tanto pro link de
     // "esqueci senha" (tratado manualmente em DeepLinkRouter) quanto pro retorno do login
     // Google (capturado direto pelo WebAuthenticator).
@@ -33,8 +42,13 @@ public class AuthService
         || !string.IsNullOrEmpty(Preferences.Default.Get(KeySession, ""))
         || Preferences.Default.Get(KeyAnon, false);
 
-    public bool IsAnonymous =>
-        Preferences.Default.Get(KeyAnon, false) && Db?.Auth.CurrentUser == null;
+    // Não usa Db.Auth.CurrentUser.IsAnonymous (o flag do próprio SDK) — depois de restaurar a
+    // sessão do SecureStorage numa nova abertura do app, esse campo nem sempre sobrevive à
+    // (des)serialização, o que fazia "Sair" achar que o visitante já não era mais anônimo e
+    // encerrar a sessão de verdade (LogoutAsync), criando um visitante novo a cada vez. Esse
+    // flag local é gravado/limpo por nós mesmos (LoginAnonymousAsync / todo login real), então
+    // é a fonte confiável.
+    public bool IsAnonymous => Preferences.Default.Get(KeyAnon, false);
 
     public string Email  => Db?.Auth.CurrentUser?.Email ?? "";
     public string UserId => Db?.Auth.CurrentUser?.Id    ?? "";
@@ -70,19 +84,141 @@ public class AuthService
         }
     }
 
-    // ── Anônimo (local — visitante não precisa de conta Supabase) ─────────────
-    public async Task LoginAnonymousAsync()
+    // ── Anônimo (visitante — uma conta anônima real do Supabase por aparelho) ─
+    /// <summary>
+    /// Entra como visitante. O visitante é PERMANENTE neste aparelho: se já existe uma sessão
+    /// anônima (persistida pelo MauiSessionHandler — e que "Sair"/LogoutAsync não destrói,
+    /// justamente por isso), reaproveita a MESMA conta/nome/pontuação pra sempre. Só cria uma
+    /// conta nova na primeira vez que o app roda neste aparelho (ou se o usuário nunca chegou
+    /// a entrar como visitante antes).
+    /// </summary>
+    /// <returns>true se uma conta de visitante NOVA foi criada agora; false se reaproveitou uma já existente.</returns>
+    public async Task<bool> LoginAnonymousAsync()
     {
-        // Encerra qualquer sessão Supabase ativa antes de entrar como visitante
+        // Dá um tempo pro Supabase terminar de inicializar (e restaurar a sessão persistida,
+        // se houver) antes de concluir que "não existe visitante ainda" — sem isso, uma
+        // inicialização lenta faria parecer que não há sessão prévia e criaria um visitante
+        // novo à toa, mesmo já existindo um salvo neste aparelho.
+        for (int i = 0; i < 25 && !SupabaseService.Instance.IsReady; i++)
+            await Task.Delay(200);
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[ChessArena] LoginAnonymousAsync: KeyAnon={Preferences.Default.Get(KeyAnon, false)} " +
+            $"currentUser={Db?.Auth.CurrentUser?.Id ?? "null"} sdkIsAnonymous={Db?.Auth.CurrentUser?.IsAnonymous}");
+
+        // Já existe uma sessão de visitante válida neste aparelho — reaproveita (mesmo nome,
+        // mesmo perfil/pontuação), em vez de criar uma conta anônima nova a cada entrada.
+        // KeyAnon (nosso próprio flag) decide isso, não o IsAnonymous do SDK — ver o porquê no
+        // comentário da propriedade IsAnonymous acima.
+        if (Db?.Auth.CurrentUser != null && Preferences.Default.Get(KeyAnon, false))
+        {
+            _ = SaveGuestSessionSnapshotAsync(); // atualiza o backup com o token mais recente
+            return false;
+        }
+
+        // Trocando de uma conta real pra visitante: encerra a sessão real antes.
         if (Db?.Auth.CurrentUser != null)
             await Db.Auth.SignOut();
 
-        Preferences.Default.Set(KeyAnon, true);
+        // Antes de criar um visitante NOVO, tenta recuperar o de sempre deste aparelho — cobre
+        // o caso de ter entrado com Google/e-mail nesse meio tempo (o que sobrescreve a sessão
+        // ativa) e depois voltado a tocar em "Visitante": sem isso, seria sempre um descartável.
+        if (await TryRestoreGuestSessionAsync())
+        {
+            Preferences.Default.Set(KeyAnon, true);
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] Visitante restaurado do backup, uid={Db?.Auth.CurrentUser?.Id}");
 
-        // Atribui nome aleatório se o perfil estiver vazio
+            // A sessão do servidor já voltou a ser a do visitante, mas o perfil local (nome,
+            // pontos) ainda está com o que ficou em cache da conta real usada nesse meio tempo
+            // (LoadFromSupabaseAsync roda no login com Google/e-mail) — sem recarregar aqui, a
+            // tela mostrava o nome/pontuação de quem tinha acabado de logar com Google, mesmo
+            // já estando de volta na conta anônima certa por trás.
+            await AppState.Current.Profile.LoadFromSupabaseAsync();
+            AppState.Current.Ranking.InvalidateCache();
+            return false;
+        }
+
+        // Cria uma sessão anônima de verdade no Supabase (auth.uid() real) — sem isso, o
+        // visitante não passa nas policies de RLS que exigem authenticated + challenger_id/
+        // white_id/black_id = auth.uid() (ex.: criar desafio em "Jogar com Amigo", found_match).
+        // Se não houver internet ou o projeto não tiver "Anonymous Sign-Ins" habilitado no
+        // painel do Supabase, cai pro modo 100% local de antes (perfil não sincroniza, e
+        // funcionalidades que dependem do servidor ficam indisponíveis pro visitante).
+        try
+        {
+            if (Db != null)
+                await Db.Auth.SignInAnonymously();
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] SignInAnonymously OK, uid={Db?.Auth.CurrentUser?.Id}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] SignInAnonymously FAILED: {ex}");
+        }
+
+        Preferences.Default.Set(KeyAnon, true);
+        _ = SaveGuestSessionSnapshotAsync();
+
+        // Visitante novo: limpa qualquer dado local que tenha sobrado de uma conta anterior no
+        // aparelho (mesmo motivo do ResetLocal() antes de um login real — ver LoginPage) e
+        // sorteia um nome novo (o nome do visitante não é editável — ver ProfilePage).
         var profile = AppState.Current.Profile;
-        if (string.IsNullOrWhiteSpace(profile.Name))
-            profile.Name = $"Visitante{Random.Shared.Next(1000, 9999)}";
+        profile.ResetLocal();
+        profile.Name = $"Visitante{Random.Shared.Next(1000, 9999)}";
+        AppState.Current.Ranking.InvalidateCache();
+
+        // Sem isso a linha em "profiles" ficava com nome vazio (só id, via handle_new_user)
+        // até o visitante abrir a tela de Perfil e salvar — e enquanto isso, ele aparecia no
+        // ranking (via jogos reais/finalize_game, que já grava elo direto ali) mas sem nome.
+        _ = profile.SyncToSupabaseAsync();
+        return true;
+    }
+
+    /// <summary>Guarda o access/refresh token da sessão anônima ATUAL num slot separado do
+    /// SecureStorage — chamado sempre que confirmamos/criamos o visitante deste aparelho, e
+    /// também logo antes de trocar pra uma conta real (ver TryLoginAsync/TrySignInWithGoogleAsync/
+    /// TryRegisterAsync), já que a troca sobrescreve a sessão "ativa" (a mesma guardada pelo
+    /// MauiSessionHandler) e sem este backup à parte o visitante ficaria irrecuperável.</summary>
+    private async Task SaveGuestSessionSnapshotAsync()
+    {
+        // Só salva se a sessão atual REALMENTE for a do visitante — chamar isso por engano com
+        // uma conta real ativa sobrescreveria o backup do visitante com o token errado.
+        if (!Preferences.Default.Get(KeyAnon, false)) return;
+
+        var session = Db?.Auth.CurrentSession;
+        if (session == null || string.IsNullOrEmpty(session.AccessToken) || string.IsNullOrEmpty(session.RefreshToken))
+            return;
+        try
+        {
+            await SecureStorage.Default.SetAsync(KeyGuestAccess,  session.AccessToken);
+            await SecureStorage.Default.SetAsync(KeyGuestRefresh, session.RefreshToken);
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] SaveGuestSessionSnapshotAsync: salvo uid={Db?.Auth.CurrentUser?.Id}");
+        }
+        catch { }
+    }
+
+    /// <summary>Tenta reativar a sessão de visitante salva por SaveGuestSessionSnapshotAsync.
+    /// Retorna false (sem exceção) se nunca houve um backup, ou se o token não é mais válido —
+    /// nesses casos o chamador segue o fluxo normal de criar um visitante novo.</summary>
+    private async Task<bool> TryRestoreGuestSessionAsync()
+    {
+        try
+        {
+            if (Db == null) return false;
+            var access  = await SecureStorage.Default.GetAsync(KeyGuestAccess);
+            var refresh = await SecureStorage.Default.GetAsync(KeyGuestRefresh);
+            System.Diagnostics.Debug.WriteLine(
+                $"[ChessArena] TryRestoreGuestSessionAsync: hasAccess={!string.IsNullOrEmpty(access)} hasRefresh={!string.IsNullOrEmpty(refresh)}");
+            if (string.IsNullOrEmpty(access) || string.IsNullOrEmpty(refresh)) return false;
+
+            var session = await Db.Auth.SetSession(access, refresh);
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] TryRestoreGuestSessionAsync: restored uid={session?.User?.Id}");
+            return session?.User != null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] TryRestoreGuestSessionAsync FAILED: {ex}");
+            return false;
+        }
     }
 
     // ── Login por e-mail + senha ──────────────────────────────────────────────
@@ -90,8 +226,16 @@ public class AuthService
     {
         try
         {
+            // Guarda o token do visitante ANTES de trocar de sessão (ver SaveGuestSessionSnapshotAsync).
+            await SaveGuestSessionSnapshotAsync();
             var session = await Db.Auth.SignIn(email.Trim().ToLower(), password);
-            return session?.User != null;
+            bool ok = session?.User != null;
+            if (ok)
+            {
+                Preferences.Default.Remove(KeyAnon);
+                AppState.Current.Ranking.InvalidateCache();
+            }
+            return ok;
         }
         catch { return false; }
     }
@@ -104,6 +248,7 @@ public class AuthService
     {
         try
         {
+            await SaveGuestSessionSnapshotAsync();
             var opts = new SignUpOptions
             {
                 Data = new Dictionary<string, object>
@@ -116,6 +261,11 @@ public class AuthService
                 return (false, false, "");
 
             bool needsConfirmation = string.IsNullOrEmpty(session.AccessToken);
+            if (!needsConfirmation)
+            {
+                Preferences.Default.Remove(KeyAnon);
+                AppState.Current.Ranking.InvalidateCache();
+            }
             return (true, needsConfirmation, "");
         }
         catch (Exception ex)
@@ -188,6 +338,8 @@ public class AuthService
     {
         try
         {
+            await SaveGuestSessionSnapshotAsync();
+
             // Fluxo Implicit em vez de PKCE: o Supabase devolve o access/refresh token direto
             // na URL de retorno, sem precisar de uma segunda troca (code+verifier) contra o
             // "flow state" guardado no servidor — evita um bug confirmado do lado do Supabase
@@ -207,9 +359,11 @@ public class AuthService
                 return (false, "Login com Google cancelado.");
 
             var session = await Db.Auth.SetSession(result.AccessToken, result.RefreshToken);
-            return session?.User != null
-                ? (true, "")
-                : (false, "Não foi possível concluir o login com Google.");
+            if (session?.User == null) return (false, "Não foi possível concluir o login com Google.");
+            Preferences.Default.Remove(KeyAnon);
+            AppState.Current.Ranking.InvalidateCache();
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] TrySignInWithGoogleAsync OK, uid={session.User.Id}");
+            return (true, "");
         }
         catch (TaskCanceledException) { return (false, "Login com Google cancelado."); }
         catch { return (false, "Não foi possível entrar com Google. Tente novamente."); }
@@ -248,6 +402,17 @@ public class AuthService
     // ── Logout ────────────────────────────────────────────────────────────────
     public async Task LogoutAsync()
     {
+        System.Diagnostics.Debug.WriteLine(
+            $"[ChessArena] LogoutAsync: KeyAnon={Preferences.Default.Get(KeyAnon, false)} " +
+            $"currentUser={Db?.Auth.CurrentUser?.Id ?? "null"}");
+
+        // Visitante: a conta anônima é permanente neste aparelho — "Sair" é só navegação de
+        // volta pra tela de login, sem destruir a sessão. Uma vez destruída (SignOut), o
+        // Supabase não deixa recuperar a MESMA conta anônima depois — reentrar como visitante
+        // sempre criaria uma conta descartável nova, que era exatamente o comportamento que
+        // devia deixar de existir.
+        if (IsAnonymous) return;
+
         Preferences.Default.Remove(KeyAnon);
         if (Db?.Auth.CurrentUser != null)
             await Db.Auth.SignOut();

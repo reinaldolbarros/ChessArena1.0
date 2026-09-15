@@ -19,6 +19,12 @@ public class OnlineGameService
     /// empate, fim de jogo) — inclui as mudanças que o próprio cliente causou também.</summary>
     public event Action<SupabaseGame>? GameUpdated;
 
+    /// <summary>Disparado quando um lance/desistência/empate/reivindicação de resultado falha
+    /// mesmo depois das tentativas automáticas — o tabuleiro local já mudou, mas o servidor
+    /// nunca recebeu, então sem isso o adversário ficaria esperando um lance que nunca chega,
+    /// sem nenhum aviso a ninguém.</summary>
+    public event Action? SyncFailed;
+
     public async Task<SupabaseGame?> LoadGameAsync(string gameId)
     {
         if (Db == null) return null;
@@ -85,17 +91,26 @@ public class OnlineGameService
     /// validate_game_move no servidor recalcula turno/relógio e rejeita qualquer outra coisa.</summary>
     public async Task<bool> SubmitMoveAsync(List<string> movesBeforeThisMove, string uciMove)
     {
-        if (Db == null || string.IsNullOrEmpty(_gameId)) return false;
-        try
+        if (Db == null || string.IsNullOrEmpty(_gameId)) { SyncFailed?.Invoke(); return false; }
+
+        var newMoves = new List<string>(movesBeforeThisMove) { uciMove };
+        for (int attempt = 0; attempt < 3; attempt++)
         {
-            var newMoves = new List<string>(movesBeforeThisMove) { uciMove };
-            await Db.From<SupabaseGame>()
-                .Where(g => g.Id == _gameId)
-                .Set(g => g.Moves, newMoves)
-                .Update();
-            return true;
+            try
+            {
+                await Db.From<SupabaseGame>()
+                    .Where(g => g.Id == _gameId)
+                    .Set(g => g.Moves, newMoves)
+                    .Update();
+                return true;
+            }
+            catch
+            {
+                if (attempt < 2) await Task.Delay(700);
+            }
         }
-        catch { return false; }
+        SyncFailed?.Invoke();
+        return false;
     }
 
     /// <summary>Chamado quando o ChessEngine local detecta fim de jogo (xeque-mate, afogamento,
@@ -117,8 +132,17 @@ public class OnlineGameService
 
     private async Task<bool> CallRpc(string function, Dictionary<string, object> args)
     {
-        if (Db == null || string.IsNullOrEmpty(_gameId)) return false;
-        try { await Db.Rpc(function, args); return true; }
-        catch { return false; }
+        if (Db == null || string.IsNullOrEmpty(_gameId)) { SyncFailed?.Invoke(); return false; }
+
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            try { await Db.Rpc(function, args); return true; }
+            catch
+            {
+                if (attempt < 2) await Task.Delay(700);
+            }
+        }
+        SyncFailed?.Invoke();
+        return false;
     }
 }

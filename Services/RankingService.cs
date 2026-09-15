@@ -9,9 +9,8 @@ namespace ChessMAUI.Services;
 /// parecer vazia no início do app: como tudo é ordenado por rating e cortado no TopLimit,
 /// jogadores reais com rating mais alto empurram os fictícios pra fora da lista sozinhos,
 /// à medida que a base de usuários reais cresce — sem precisar de nenhuma lógica especial.
-/// Visitantes/anônimos não têm conta sincronizada (ver AuthService.IsAnonymous), então não
-/// entram no ranking global; eles veem sua pontuação local, mas sem uma posição real
-/// ("—" em vez de um número inventado).
+/// Visitantes/anônimos têm conta real (anônima) no Supabase — ver AuthService.LoginAnonymousAsync
+/// — e por isso entram no ranking global normalmente, como qualquer outro jogador.
 /// </summary>
 public class RankingService
 {
@@ -25,6 +24,16 @@ public class RankingService
 
     public List<RankingEntry>? PeekGlobalCache() => _cachedGlobal;
     public bool IsGlobalCacheFresh => _cachedGlobal != null && DateTime.UtcNow - _cachedGlobalAt < CacheTtl;
+
+    /// <summary>Descarta o cache — chamar sempre que o usuário logado muda (visitante ↔ conta
+    /// real, ou troca de conta), senão a Lobby continua mostrando por até 45s a entrada
+    /// destacada ("você") de QUEM estava logado antes da troca, já que o cache não sabia que a
+    /// identidade mudou.</summary>
+    public void InvalidateCache()
+    {
+        _cachedGlobal   = null;
+        _cachedGlobalAt = DateTime.MinValue;
+    }
 
     // Preenchimento fictício — nomes plausíveis de jogadores reais, com rating distribuído
     // numa curva realista. Nunca aparecem se já existir gente real o suficiente com rating

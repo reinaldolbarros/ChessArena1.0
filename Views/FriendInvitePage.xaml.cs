@@ -176,8 +176,9 @@ public partial class FriendInvitePage : ContentPage
         {
             await svc.Client.From<SupabaseChallenge>().Insert(challenge);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ChessArena] Insert challenge FAILED (uid={AppState.Current.Auth.UserId}, anon={AppState.Current.Auth.IsAnonymous}): {ex}");
             await DisplayAlert("Erro", "Não foi possível criar o desafio. Tente novamente.", "OK");
             return;
         }
@@ -226,7 +227,7 @@ public partial class FriendInvitePage : ContentPage
 
         var countdownLbl = new Label
         {
-            TextColor = Color.FromArgb("#6A8AAA"), FontSize = 12
+            TextColor = Color.FromArgb("#9FB3C8"), FontSize = 12
         };
         _countdownLabels[ch.Code] = countdownLbl;
 

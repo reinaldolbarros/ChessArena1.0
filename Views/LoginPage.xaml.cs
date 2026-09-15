@@ -213,7 +213,8 @@ public partial class LoginPage : ContentPage
     // ── Visitante ────────────────────────────────────────────────────────────
     private async void OnAnonymousClicked(object? sender, EventArgs e)
     {
-        _profile.ResetLocal();
+        // LoginAnonymousAsync já decide sozinho se reaproveita o visitante deste aparelho
+        // (mantendo o perfil local intacto) ou se cria um novo (aí sim limpando dados antigos).
         await _auth.LoginAnonymousAsync();
         await GoToShell();
     }

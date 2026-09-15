@@ -23,8 +23,17 @@ public partial class SplashPage : ContentPage
         var auth    = AppState.Current.Auth;
         var profile = AppState.Current.Profile;
 
-        // Fire-and-forget: espera internamente até Supabase estar pronto
-        if (auth.IsAuthenticated && !auth.IsAnonymous)
+        if (auth.IsAuthenticated && auth.IsAnonymous)
+        {
+            // Upgrade silencioso: visitante de uma versão anterior do app guardava só uma
+            // flag local (sem conta real no Supabase) — LoginAnonymousAsync não faz nada se
+            // já existir uma sessão anônima de verdade, e só cria uma na primeira vez que
+            // isso roda neste aparelho. Sem isso, quem já tinha entrado como visitante antes
+            // dessa correção nunca conseguiria usar recursos de servidor (criar desafio,
+            // aparecer no ranking) mesmo depois de atualizar o app.
+            await auth.LoginAnonymousAsync();
+        }
+        else if (auth.IsAuthenticated) // fire-and-forget: espera internamente até Supabase estar pronto
             _ = profile.LoadFromSupabaseAsync();
 
         Page next;

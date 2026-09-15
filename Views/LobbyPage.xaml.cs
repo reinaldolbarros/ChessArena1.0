@@ -558,6 +558,9 @@ public partial class LobbyPage : ContentPage
 
     private async Task OnLogoutAsync()
     {
+        // Visitante: a conta anônima é permanente neste aparelho — "Sair" só volta pra tela de
+        // login (pra, por exemplo, entrar com e-mail/Google); reentrar como visitante depois
+        // continua sendo o MESMO visitante de sempre (ver AuthService.LogoutAsync).
         bool confirm = await DisplayAlert("Sair", "Deseja sair da sua conta?", "Sair", "Cancelar");
         if (!confirm) return;
 
